@@ -1,0 +1,115 @@
+# Narrative Harm Taxonomy — Baseline v1.0
+# Classification specification for Phase 1 (M2 implementation)
+# Versioned for M1 baseline reproducibility
+
+version: "1.0.0"
+effective_date: "2026-05-11"
+baseline_tag: "m1-baseline"
+
+# --- Priority Category (Phase 1 End-to-End Validation) ---
+priority_category: "dehumanization"
+
+categories:
+  - id: "CAT-001"
+    name: "dehumanization"
+    description: "Content that denies or negates the full humanity of a group"
+    priority: 1
+    thresholds:
+      precision_min: 0.70
+      recall_min: 0.65
+      fpr_max: 0.20
+    taxonomy_rows:
+      - row_id: "D2.4a-001"
+        target_type: "ethnic_group"
+        harm_mechanism: "animalization"
+        identity_axis: "race_ethnicity"
+        signal_weight: 0.90
+        decision_threshold: 0.65
+        examples:
+          positive: ["comparing [group] to animals", "they are vermin", "subhuman [group]"]
+          negative: ["animal rights", "comparing prices", "wildlife documentary"]
+
+      - row_id: "D2.4a-002"
+        target_type: "religious_group"
+        harm_mechanism: "demonization"
+        identity_axis: "religion"
+        signal_weight: 0.85
+        decision_threshold: 0.65
+        examples:
+          positive: ["[religion] followers are evil", "demonic [religion]", "servants of evil"]
+          negative: ["religious debate", "theological disagreement", "historical critique"]
+
+      - row_id: "D2.4a-003"
+        target_type: "gender_group"
+        harm_mechanism: "objectification"
+        identity_axis: "gender"
+        signal_weight: 0.80
+        decision_threshold: 0.60
+        examples:
+          positive: ["women are just objects", "they exist to serve", "property of men"]
+          negative: ["objectification theory", "academic discussion", "feminist critique"]
+
+      - row_id: "D2.4a-004"
+        target_type: "national_origin_group"
+        harm_mechanism: "criminalization"
+        identity_axis: "national_origin"
+        signal_weight: 0.85
+        decision_threshold: 0.65
+        examples:
+          positive: ["all [nationality] are criminals", "[nationality] bring crime", "deport them all"]
+          negative: ["crime statistics", "immigration policy debate", "law enforcement discussion"]
+
+  - id: "CAT-002"
+    name: "incitement"
+    description: "Content that calls for or encourages harm against a group"
+    priority: 2
+    thresholds:
+      precision_min: 0.75
+      recall_min: 0.65
+      fpr_max: 0.15
+    taxonomy_rows:
+      - row_id: "D2.4a-005"
+        target_type: "ethnic_group"
+        harm_mechanism: "direct_call_to_violence"
+        identity_axis: "race_ethnicity"
+        signal_weight: 0.95
+        decision_threshold: 0.55
+        examples:
+          positive: ["attack [group]", "we must eliminate them", "time to fight back against [group]"]
+          negative: ["self-defense discussion", "historical war context", "video game violence"]
+
+  - id: "CAT-003"
+    name: "narrative_distortion"
+    description: "Coordinated misrepresentation of group behavior or identity"
+    priority: 3
+    thresholds:
+      precision_min: 0.70
+      recall_min: 0.60
+      fpr_max: 0.20
+    taxonomy_rows:
+      - row_id: "D2.4a-006"
+        target_type: "political_group"
+        harm_mechanism: "false_attribution"
+        identity_axis: "political_affiliation"
+        signal_weight: 0.70
+        decision_threshold: 0.70
+        examples:
+          positive: ["[group] are all secretly [slur]", "they all want to destroy [country]"]
+          negative: ["political opinion", "policy critique", "satire"]
+
+# --- Ambiguity Resolution Rules ---
+ambiguity_rules:
+  multi_signal_conflict: "highest_weight_wins"
+  threshold_tie: "conservative"  # classify as harm when tied
+  context_window_tokens: 256
+  require_target_present: true   # must identify a target group to classify as harm
+  min_signal_count: 1
+
+# --- Performance Baselines (M1 locked) ---
+m1_baselines:
+  locked: true
+  dehumanization:
+    precision: null   # to be established in Phase 1 validation
+    recall: null
+    fpr: null
+  note: "Baselines populated after Phase 1 end-to-end validation run"
