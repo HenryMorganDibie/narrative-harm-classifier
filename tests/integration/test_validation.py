@@ -7,16 +7,16 @@ asserts that performance thresholds are met:
 """
 
 import pytest
-from pathlib import Path
-from classifier.taxonomy.loader import load_taxonomy
-from classifier.rules.engine import ClassificationEngine
-from classifier.rules.azure_nlp import AzureNLPClient
-from classifier.validators.performance import (
+from narrative_harm_classifier.core.config import get_settings
+from narrative_harm_classifier.classifier.taxonomy.loader import load_taxonomy
+from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine
+from narrative_harm_classifier.classifier.rules.azure_nlp import AzureNLPClient
+from narrative_harm_classifier.classifier.validators.performance import (
     PerformanceValidator,
     DEHUMANIZATION_VALIDATION_SAMPLES,
 )
 
-TAXONOMY_PATH = str(Path(__file__).parent.parent.parent / "config" / "taxonomy_v1.yaml")
+TAXONOMY_PATH = get_settings().taxonomy_config_path
 
 
 @pytest.fixture

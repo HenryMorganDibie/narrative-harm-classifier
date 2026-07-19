@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "narrative-harm-classifier"
+version = "0.1.0"
+description = "Rule-based narrative harm classification with escalation-chain tracking and a templated benchmark suite."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Henry Morgan Dibie" },
+]
+keywords = [
+    "content-moderation",
+    "trust-and-safety",
+    "hate-speech-detection",
+    "dehumanization",
+    "nlp",
+]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: Linguistic",
+    "Intended Audience :: Developers",
+]
+
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.6",
+    "pydantic>=2.9.2",
+    "pydantic-settings>=2.5.2",
+    "pyyaml>=6.0.2",
+    "python-dotenv>=1.0.1",
+    "typer>=0.12.5",
+    "sqlalchemy>=2.0.35",
+]
+
+[project.optional-dependencies]
+azure = [
+    "azure-ai-textanalytics>=5.3.0",
+    "azure-core>=1.31.0",
+]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.27.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/HenryMorganDibie/narrative-harm-classifier"
+Repository = "https://github.com/HenryMorganDibie/narrative-harm-classifier"
+Issues = "https://github.com/HenryMorganDibie/narrative-harm-classifier/issues"
+
+[project.scripts]
+nhc = "narrative_harm_classifier.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["narrative_harm_classifier"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
