@@ -1,0 +1,97 @@
+# Arabic detection vocabulary. "verified" confidence — same rigor as
+# English, not yet reviewed by a native-speaker domain expert. Core
+# vocabulary is covered; Arabic's root-based morphology means inflected
+# forms beyond what's listed here may not match — a documented gap, not a
+# silent one (see README Limitations). No Latin-style obfuscation map
+# applies to Arabic script.
+#
+# Important structural note: Arabic's definite article (ال) and plural
+# suffixes attach directly to the word with no space ("مسلم" -> "المسلمون"),
+# so a plain \b(word)\b pattern never matches the prefixed/suffixed form —
+# which is extremely common in real text (any definite noun). Every pattern
+# below explicitly allows an optional leading "ال" and the common plural
+# suffixes rather than relying on a bare stem.
+
+language: ar
+confidence: verified
+
+identity_anchors:
+  religion:
+    - "\\b(?:ال)?(مسيحيون|مسيحية|مسيحي|مسلمون|مسلمين|مسلمة|مسلم|يهود|يهودية|يهودي|هندوس|هندوسي|بوذيون|بوذي|سيخ|ملحدون|ملحد|كاثوليك|كاثوليكي|بروتستانت|بروتستانتي)\\b"
+    - "\\b(?:ال)?(إسلام|مسيحية|يهودية|هندوسية|بوذية)\\b"
+  race_ethnicity:
+    - "\\b(?:ال)?(أسود|سوداء|سود|أبيض|بيضاء|بيض|آسيويون|آسيوية|آسيوي|عرب|عربية|عربي|أصليون|أصلية|أصلي)\\b"
+    - "\\b(?:ال)?(أفارقة|أفريقية|أفريقي|أوروبيون|أوروبية|أوروبي|صينيون|صينية|صيني|مكسيكيون|مكسيكية|مكسيكي|كوريون|كورية|كوري|يابانيون|يابانية|ياباني)\\b"
+  gender:
+    - "\\b(?:ال)?(نساء|رجال|امرأة|رجل|متحولون جنسيا|متحولات جنسيا)\\b"
+    - "\\b(?:ال)?(فتيات|أولاد|بنات)\\b"
+  national_origin:
+    - "\\b(?:ال)?(مهاجرون|مهاجرين|مهاجرة|مهاجر|لاجئون|لاجئين|لاجئة|لاجئ|أجانب|أجنبية|أجنبي)\\b"
+    - "\\b(?:ال)?(أمريكيون|أمريكي|مكسيكيون|مكسيكي|صينيون|صيني|روس|روسي|إيرانيون|إيراني|كوريون الشماليون)\\b"
+  political_affiliation:
+    - "\\b(?:ال)?(ديمقراطيون|ديمقراطي|جمهوريون|جمهوري|ليبراليون|ليبرالي|محافظون|محافظ|اشتراكيون|اشتراكي|شيوعيون|شيوعي|فاشيون|فاشي)\\b"
+
+harm_patterns:
+  animalization:
+    - "\\b(?:ال)?(حشرات|صراصير|جرذان|آفة|حيوانات|حيوان|وحوش|وحش|متوحشون|متوحش|دون البشر)\\b"
+    - "\\b(?:ال)?(يتكاثرون بشكل جامح|غزو)\\b"
+    - "أقل من بشر"
+    - "ليسوا حتى بشرا"
+  demonization:
+    - "\\b(?:ال)?(شياطين|شيطاني|شرير|شريرة|أشرار|إبليس|شيطان)\\b"
+    - "شر خالص"
+  objectification:
+    - "\\b(?:ال)?(أشياء|شيء|ملكية|ممتلكات)\\b"
+    - "موجودون فقط ليخدموا"
+    - "مجرد (شيء|أداة)"
+  criminalization:
+    - "\\bكلهم .{0,20}(مجرمون|مغتصبون|قتلة|لصوص|إرهابيون)\\b"
+    - "\\b(يجلبون الجريمة|يجلبون المخدرات)\\b"
+    - "\\bيجب ترحيلهم جميعا\\b"
+  direct_call_to_violence:
+    - "\\b(يجب مهاجمتهم|يجب قتلهم|يجب تدميرهم|يجب إبادتهم|يجب القضاء عليهم)\\b"
+    - "\\bحان وقت (القتال|الهجوم|القضاء عليهم)\\b"
+    - "\\bيجب أن (يموتوا|يُقضى عليهم)\\b"
+  false_attribution:
+    - "\\bكلهم سرا يريدون\\b"
+    - "\\b(أجندتهم الحقيقية|أجندتهم السرية)\\b"
+
+negation_cues:
+  - "ليس"
+  - "ليسوا"
+  - "لم يعد"
+  - "من الكذب أن"
+  - "غير صحيح أن"
+
+reporting_cues:
+  - "يقول البعض"
+  - "بعض المعلقين"
+  - "وصفهم بـ"
+  - "الذين يقولون"
+
+condemnation_cues:
+  - "خطير"
+  - "خطيرة"
+  - "متحيز"
+  - "هراء"
+  - "كارثة أخلاقية"
+  - "ينشر أكاذيب"
+  - "أدى إلى العنف"
+  - "هذا كذب"
+  - "هذا غير صحيح"
+
+benign_context_cues:
+  - "مكافحة الآفات"
+  - "حشرات"
+  - "الحياة البرية"
+  - "فيلم وثائقي"
+  - "فيلم رعب"
+  - "ناقد سينمائي"
+  - "لعبة فيديو"
+  - "دورة الدفاع عن النفس"
+  - "أكاديمي"
+  - "نظرية"
+  - "إحصائيات"
+  - "نقاش سياسي"
+
+obfuscation_map: {}

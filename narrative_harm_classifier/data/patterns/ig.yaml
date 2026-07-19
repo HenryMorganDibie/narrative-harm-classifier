@@ -1,0 +1,40 @@
+# Igbo detection vocabulary. "experimental" confidence — DELIBERATELY a small
+# seed list, not comparable in coverage or reliability to the verified-tier
+# languages (en/es/fr/ru/ar). I do not have the same depth of training data
+# for Igbo that I have for those languages, and this has not been reviewed
+# by a native speaker. Treat any result under this language as a starting
+# point that needs human verification, not a trustworthy classification on
+# its own — see README Limitations. No negation/counter-speech heuristics
+# are implemented for this language yet (left empty rather than guessed).
+#
+# Contributions from Igbo speakers to expand and correct this file are
+# very welcome — see CONTRIBUTING.md.
+
+language: ig
+confidence: experimental
+
+identity_anchors:
+  religion:
+    - "\\b(ndị kraịst|onye kraịst|ndị alaịsalamu|onye alaịsalamu|ndị mụsụlumi|ndị juu)\\b"
+  gender:
+    - "\\b(ụmụnwaanyị|ụmụnwoke)\\b"
+  national_origin:
+    - "\\b(ndị ọbịa)\\b"
+
+harm_patterns:
+  animalization:
+    - "\\b(anụmanụ)\\b"
+  demonization:
+    - "\\b(ajọ mmụọ)\\b"
+  objectification: []
+  criminalization: []
+  direct_call_to_violence:
+    - "\\b(gbuo ha)\\b"
+  false_attribution: []
+
+negation_cues: []
+reporting_cues: []
+condemnation_cues: []
+benign_context_cues: []
+
+obfuscation_map: {}

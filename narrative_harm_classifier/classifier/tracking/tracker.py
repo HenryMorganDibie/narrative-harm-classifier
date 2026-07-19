@@ -9,7 +9,9 @@ project's rationale-driven design.
 
 from narrative_harm_classifier.core.models import ClassifyRequest
 from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine
+from narrative_harm_classifier.classifier.provenance import GENESIS_HASH, record_hash as compute_record_hash
 from narrative_harm_classifier.classifier.tracking.models import (
+    ChainVerification,
     Observation,
     SourceProfile,
     SeverityLevel,
@@ -34,6 +36,19 @@ class EscalationTracker:
     def observe(self, source_id: str, request: ClassifyRequest) -> Observation:
         result = self.engine.classify(request)
         severity = severity_for_mechanism(result.harm_mechanism)
+        observed_at = result.classified_at
+
+        prev_hash = self.store.last_record_hash(source_id)
+        this_record_hash = compute_record_hash(
+            prev_hash=prev_hash,
+            source_id=source_id,
+            text_excerpt=result.text_excerpt,
+            is_harmful=result.is_harmful,
+            harm_mechanism=result.harm_mechanism,
+            confidence=result.confidence,
+            observed_at=observed_at,
+            content_hash_value=result.content_hash,
+        )
 
         obs = Observation(
             source_id=source_id,
@@ -43,8 +58,46 @@ class EscalationTracker:
             harm_mechanism=result.harm_mechanism,
             confidence=result.confidence,
             severity=severity,
+            observed_at=observed_at,
+            content_hash=result.content_hash,
+            prev_hash=prev_hash,
+            record_hash=this_record_hash,
         )
         return self.store.add_observation(obs)
+
+    def verify_chain(self, source_id: str) -> ChainVerification:
+        """
+        Recompute the hash chain for a source's full observation history and
+        confirm every record's stored record_hash matches what it should be
+        given the previous record's hash — detects tampering with any
+        historical record, though it does not prevent it.
+        """
+        history = self.store.history(source_id)
+        if not history:
+            return ChainVerification(source_id=source_id, observation_count=0, intact=True)
+
+        expected_prev = GENESIS_HASH
+        for obs in history:
+            expected_hash = compute_record_hash(
+                prev_hash=expected_prev,
+                source_id=obs.source_id,
+                text_excerpt=obs.text_excerpt,
+                is_harmful=obs.is_harmful,
+                harm_mechanism=obs.harm_mechanism,
+                confidence=obs.confidence,
+                observed_at=obs.observed_at,
+                content_hash_value=obs.content_hash,
+            )
+            if obs.prev_hash != expected_prev or obs.record_hash != expected_hash:
+                return ChainVerification(
+                    source_id=source_id,
+                    observation_count=len(history),
+                    intact=False,
+                    first_broken_id=obs.id,
+                )
+            expected_prev = obs.record_hash
+
+        return ChainVerification(source_id=source_id, observation_count=len(history), intact=True)
 
     def profile(self, source_id: str, window: int = DEFAULT_WINDOW) -> SourceProfile:
         history = self.store.history(source_id, limit=window)

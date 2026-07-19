@@ -55,6 +55,9 @@ class Observation(BaseModel):
     confidence: float
     severity: SeverityLevel
     observed_at: datetime = Field(default_factory=datetime.utcnow)
+    content_hash: str = ""
+    prev_hash: str = ""
+    record_hash: str = ""
 
 
 class SourceProfile(BaseModel):
@@ -65,6 +68,13 @@ class SourceProfile(BaseModel):
     trend: str  # "escalating" | "stable" | "de-escalating" | "insufficient_data"
     risk_level: str  # "low" | "watch" | "elevated" | "critical"
     history: list[Observation] = []
+
+
+class ChainVerification(BaseModel):
+    source_id: str
+    observation_count: int
+    intact: bool
+    first_broken_id: Optional[int] = None
 
 
 RISK_LEVELS = ("low", "watch", "elevated", "critical")

@@ -17,13 +17,12 @@ handled) — that's the point: honest measurement rather than a vanity metric.
 import logging
 from datetime import datetime
 from functools import lru_cache
-from pathlib import Path
 from typing import Optional
 
-import yaml
 from pydantic import BaseModel
 
 from narrative_harm_classifier.core.models import ClassifyRequest
+from narrative_harm_classifier.core.yaml_loader import load_yaml_file
 from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine
 
 logger = logging.getLogger(__name__)
@@ -70,11 +69,7 @@ class BenchmarkReport(BaseModel):
 
 @lru_cache(maxsize=4)
 def load_benchmark_templates(path: str) -> dict:
-    template_path = Path(path)
-    if not template_path.exists():
-        raise FileNotFoundError(f"Benchmark templates not found: {path}")
-    with open(template_path) as f:
-        return yaml.safe_load(f)
+    return load_yaml_file(path)
 
 
 def generate_benchmark_cases(templates_path: str) -> list[BenchmarkCase]:

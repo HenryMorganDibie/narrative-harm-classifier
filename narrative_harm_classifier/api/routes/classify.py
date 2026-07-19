@@ -7,19 +7,14 @@ from narrative_harm_classifier.core.models import ClassifyRequest, Classificatio
 from narrative_harm_classifier.core.config import get_settings, Settings
 from narrative_harm_classifier.classifier.taxonomy.loader import load_taxonomy
 from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine
-from narrative_harm_classifier.classifier.rules.azure_nlp import AzureNLPClient
+from narrative_harm_classifier.classifier.factory import build_engine
 from datetime import datetime
 
 router = APIRouter()
 
 
 def get_engine(settings: Settings = Depends(get_settings)) -> ClassificationEngine:
-    taxonomy = load_taxonomy(settings.taxonomy_config_path)
-    azure_client = AzureNLPClient(
-        endpoint=settings.azure_text_analytics_endpoint,
-        key=settings.azure_text_analytics_key,
-    )
-    return ClassificationEngine(taxonomy=taxonomy, azure_client=azure_client)
+    return build_engine(settings)
 
 
 @router.post(

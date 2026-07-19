@@ -1,0 +1,40 @@
+# Hausa detection vocabulary. "experimental" confidence — DELIBERATELY a
+# small seed list, not comparable in coverage or reliability to the
+# verified-tier languages (en/es/fr/ru/ar). I do not have the same depth of
+# training data for Hausa that I have for those languages, and this has not
+# been reviewed by a native speaker. Treat any result under this language as
+# a starting point that needs human verification — see README Limitations.
+# No negation/counter-speech heuristics are implemented for this language
+# yet (left empty rather than guessed).
+#
+# Contributions from Hausa speakers to expand and correct this file are
+# very welcome — see CONTRIBUTING.md.
+
+language: ha
+confidence: experimental
+
+identity_anchors:
+  religion:
+    - "\\b(kirista|kiristoci|musulmi|musulmai|yahudawa)\\b"
+  gender:
+    - "\\b(mata|maza)\\b"
+  national_origin:
+    - "\\b(bakin haure|bare)\\b"
+
+harm_patterns:
+  animalization:
+    - "\\b(dabba|dabbobi)\\b"
+  demonization:
+    - "\\b(aljani|aljanu)\\b"
+  objectification: []
+  criminalization: []
+  direct_call_to_violence:
+    - "\\b(a kashe su)\\b"
+  false_attribution: []
+
+negation_cues: []
+reporting_cues: []
+condemnation_cues: []
+benign_context_cues: []
+
+obfuscation_map: {}

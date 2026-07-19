@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     benchmark_templates_path: str = str(
         Path(__file__).parent.parent / "data" / "benchmark_templates.yaml"
     )
+    patterns_dir: str = str(Path(__file__).parent.parent / "data" / "patterns")
+    dogwhistles_path: str = str(Path(__file__).parent.parent / "data" / "dogwhistles.yaml")
+    i18n_smoke_tests_path: str = str(Path(__file__).parent.parent / "data" / "i18n_smoke_tests.yaml")
     taxonomy_version: str = "1.0.0"
     default_confidence_threshold: float = 0.65
     context_window_tokens: int = 256

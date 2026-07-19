@@ -11,6 +11,7 @@ from narrative_harm_classifier.core.config import Settings, get_settings
 from narrative_harm_classifier.classifier.taxonomy.loader import load_taxonomy
 from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine, _detect_identity_anchor, _detect_harm_signals
 from narrative_harm_classifier.classifier.rules.azure_nlp import AzureNLPClient
+from narrative_harm_classifier.classifier.rules.patterns_loader import load_language_patterns
 
 TAXONOMY_PATH = get_settings().taxonomy_config_path
 
@@ -21,6 +22,11 @@ def taxonomy():
 
 
 @pytest.fixture
+def en_patterns():
+    return load_language_patterns(get_settings().patterns_dir, "en")
+
+
+@pytest.fixture
 def engine(taxonomy):
     azure = AzureNLPClient()  # fallback mode — no credentials needed
     return ClassificationEngine(taxonomy=taxonomy, azure_client=azure)
@@ -28,49 +34,51 @@ def engine(taxonomy):
 
 # --- Identity anchor detection ---
 
-def test_detects_ethnic_group_anchor():
-    axis = _detect_identity_anchor("Black people deserve equal rights")
+def test_detects_ethnic_group_anchor(en_patterns):
+    axis = _detect_identity_anchor("Black people deserve equal rights", en_patterns)
     assert axis == "race_ethnicity"
 
 
-def test_detects_religious_group_anchor():
-    axis = _detect_identity_anchor("Muslim communities face discrimination")
+def test_detects_religious_group_anchor(en_patterns):
+    axis = _detect_identity_anchor("Muslim communities face discrimination", en_patterns)
     assert axis == "religion"
 
 
-def test_detects_gender_anchor():
-    axis = _detect_identity_anchor("Women should have equal pay")
+def test_detects_gender_anchor(en_patterns):
+    axis = _detect_identity_anchor("Women should have equal pay", en_patterns)
     assert axis == "gender"
 
 
-def test_no_anchor_returns_none():
-    axis = _detect_identity_anchor("The weather is nice today")
+def test_no_anchor_returns_none(en_patterns):
+    axis = _detect_identity_anchor("The weather is nice today", en_patterns)
     assert axis is None
 
 
 # --- Harm pattern detection ---
 
-def test_animalization_pattern():
+def test_animalization_pattern(en_patterns):
     from narrative_harm_classifier.classifier.taxonomy.loader import TaxonomyRow
     row = TaxonomyRow(
         row_id="test", target_type="ethnic_group",
         harm_mechanism="animalization", identity_axis="race_ethnicity",
         signal_weight=0.9, decision_threshold=0.65
     )
-    matched, pattern, match_obj, matched_text = _detect_harm_signals("they are vermin infesting our streets", row)
+    matched, pattern, match_obj, matched_text = _detect_harm_signals(
+        "they are vermin infesting our streets", row, en_patterns
+    )
     assert matched is True
     assert pattern is not None
     assert match_obj is not None
 
 
-def test_no_harm_pattern():
+def test_no_harm_pattern(en_patterns):
     from narrative_harm_classifier.classifier.taxonomy.loader import TaxonomyRow
     row = TaxonomyRow(
         row_id="test", target_type="ethnic_group",
         harm_mechanism="animalization", identity_axis="race_ethnicity",
         signal_weight=0.9, decision_threshold=0.65
     )
-    matched, _, _, _ = _detect_harm_signals("I love animals and wildlife", row)
+    matched, _, _, _ = _detect_harm_signals("I love animals and wildlife", row, en_patterns)
     assert matched is False
 
 

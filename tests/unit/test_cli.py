@@ -57,3 +57,28 @@ def test_track_observe_show_list_commands():
 def test_track_show_unknown_source_exits_nonzero():
     result = runner.invoke(app, ["track", "show", f"never-seen-{uuid.uuid4().hex[:8]}"])
     assert result.exit_code == 1
+
+
+def test_track_verify_command():
+    source_id = f"cli-verify-{uuid.uuid4().hex[:8]}"
+    runner.invoke(app, ["track", "observe", source_id, "Immigration policy is a complex issue"])
+
+    result = runner.invoke(app, ["track", "verify", source_id])
+    assert result.exit_code == 0
+    assert "YES" in result.stdout
+
+
+def test_classify_command_with_language_option():
+    result = runner.invoke(
+        app,
+        ["classify", "Todos los inmigrantes son criminales, deportarlos a todos", "--language", "es"],
+    )
+    assert result.exit_code == 0
+    assert '"is_harmful": true' in result.stdout
+    assert '"language": "es"' in result.stdout
+
+
+def test_benchmark_i18n_command():
+    result = runner.invoke(app, ["benchmark", "i18n"])
+    assert result.exit_code == 0
+    assert "LANGUAGE" in result.stdout

@@ -1,7 +1,7 @@
 # Narrative Harm Classifier
 
 [![CI](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml/badge.svg)](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen)](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/narrative-harm-classifier)](https://pypi.org/project/narrative-harm-classifier/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
@@ -27,6 +27,10 @@ than treating each text as an isolated event.
 - [Core concepts](#core-concepts)
 - [Escalation-chain tracking](#escalation-chain-tracking-in-depth)
 - [Benchmark suite](#benchmark-suite-in-depth)
+- [Multilingual support](#multilingual-support-in-depth)
+- [Dog-whistle lexicon](#dog-whistle-lexicon-in-depth)
+- [Counter-narrative guidance](#counter-narrative-guidance)
+- [Provenance & tamper-evidence](#provenance--tamper-evidence-in-depth)
 - [Performance](#performance)
 - [Limitations](#limitations)
 - [Architecture](#architecture)
@@ -148,6 +152,13 @@ nhc benchmark run       # ~190-case functional test suite, broken out by capabil
 nhc serve                # API at http://localhost:8000/docs
 ```
 
+Multilingual classification (7 additional languages — see
+[Multilingual support](#multilingual-support-in-depth) for the verified/experimental distinction):
+
+```bash
+nhc classify "Todos los inmigrantes son criminales, deportarlos a todos" --language es
+```
+
 ### As a library
 
 ```python
@@ -193,6 +204,18 @@ coming in as an engineer.
   (does the engine handle negation? counter-speech? disguised spelling?), so a single aggregate
   accuracy number can't hide a specific, important blind spot. See
   [Benchmark suite](#benchmark-suite-in-depth).
+- **Language confidence** — every classification is tagged `verified` (English, Spanish, French,
+  Russian, Arabic — well-resourced languages with the same detection rigor) or `experimental` (Igbo,
+  Yoruba, Hausa — a seed vocabulary, not native-speaker-reviewed). See
+  [Multilingual support](#multilingual-support-in-depth).
+- **Dog-whistle** — a coded term with a specific, documented bigoted meaning ("globalist" as an
+  antisemitic conspiracy trope) that reads as innocuous to anyone unfamiliar with it. Detected as an
+  additional signal source alongside the taxonomy, not a separate system. See
+  [Dog-whistle lexicon](#dog-whistle-lexicon-in-depth).
+- **Content hash / record hash** — a SHA-256 fingerprint of what was classified (`content_hash`) and,
+  for tracked sources, a hash chain over the observation history (`record_hash`) that makes tampering
+  with a historical record detectable. See
+  [Provenance & tamper-evidence](#provenance--tamper-evidence-in-depth).
 
 ---
 
@@ -294,6 +317,101 @@ good example of what this check is for.
 
 ---
 
+## Multilingual support (in depth)
+
+Seven languages beyond English: **Spanish, French, Russian, Arabic** (`verified` confidence) and
+**Igbo, Yoruba, Hausa** (`experimental` confidence). Pass `language` on a request
+(`nhc classify TEXT --language es`, or `"language": "es"` in the API body) — an unrecognized code falls
+back to English with an explicit note in the rationale rather than silently misclassifying.
+
+**What "verified" vs "experimental" actually means here, stated plainly:** Spanish, French, Russian, and
+Arabic get the same detection rigor as English — identity anchors, harm patterns, and the negation/
+counter-speech/benign-context suppression cues are all populated. Igbo, Yoruba, and Hausa are
+**deliberately smaller seed vocabularies** (a handful of core identity and harm terms, no
+negation/counter-speech heuristics yet) because I do not have the same depth of training data for those
+three languages that I have for the others, and none of the eight languages here — including the
+"verified" ones — have been reviewed by a native-speaker domain expert. `language_confidence` on every
+response makes this distinction visible in the data, not just in this paragraph.
+
+Each language's vocabulary lives in its own file under `narrative_harm_classifier/data/patterns/`
+(`en.yaml`, `es.yaml`, `fr.yaml`, `ru.yaml`, `ar.yaml`, `ig.yaml`, `yo.yaml`, `ha.yaml`) rather than in
+code, so adding or correcting a language doesn't require touching `engine.py` — see
+[CONTRIBUTING.md](CONTRIBUTING.md) for the format. A smaller, separate smoke-test suite
+(`nhc benchmark i18n`, `data/i18n_smoke_tests.yaml`) checks basic detection works per language — it is
+**not** a replication of the English 192-case benchmark; building adversarial negation/counter-speech/
+obfuscation test cases with confidence requires a fluency I don't have for all eight languages equally.
+
+Real Arabic-specific finding from building this: a plain `\b(word)\b` regex never matches a prefixed or
+suffixed Arabic word, because the definite article (`ال`) and plural suffixes attach directly with no
+space (`مسلم` → `المسلمون`) — extremely common in ordinary text, not an edge case. Every Arabic pattern
+explicitly allows for the attached article and common plural forms now; see the comment at the top of
+`ar.yaml` if you're extending it.
+
+---
+
+## Dog-whistle lexicon (in depth)
+
+A small, explicitly-sourced seed list (~12 entries, `narrative_harm_classifier/data/dogwhistles.yaml`) of
+coded terms with a documented bigoted meaning that reads as innocuous without that context — "globalist"
+and "cultural Marxism" as antisemitic conspiracy tropes, "great replacement" and "white genocide" as
+white-nationalist demographic conspiracy theories, "13/50" as a racist crime-statistic trope, "1488" and
+"14 words" as neo-Nazi numeric/slogan codes, and similar. Each entry cites where it's publicly documented
+(ADL's Hate Symbols Database, SPLC, or academic literature on coded hate speech) rather than being
+asserted without a source.
+
+A dog-whistle match is scored through the **same pipeline** as a taxonomy row — not a separate decision
+path — and still requires an identity anchor to be present in the text (`require_target_present` applies
+identically). Ambiguous terms with legitimate non-bigoted uses (e.g. "globalist" can just mean
+"pro-globalization") get a lower `signal_weight`; unambiguous, purpose-built coded terms get a higher one.
+When a dog-whistle contributes the winning signal, `dogwhistle_matched` on the response names the term.
+
+This is currently English-only and, like everything in [Limitations](#limitations), a floor rather than a
+ceiling: coded language changes faster than any static list, so this needs ongoing curation, not a
+one-time build. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose a new entry (a public source is
+required).
+
+---
+
+## Counter-narrative guidance
+
+When a classification is harmful, `counter_narrative_guidance` on the response gives general, templated
+guidance for that specific harm mechanism, grounded in the public "acknowledge → redirect → inform"
+counter-messaging framework used by projects like Moonshot CVE and the Redirect Method — for example,
+criminalization-framed content gets guidance to lead with accurate statistics rather than general appeals
+not to stereotype, while `direct_call_to_violence` gets guidance favoring escalation to human review over
+automated counter-messaging.
+
+This is deliberately **not** auto-generated bespoke rebuttal text for the specific input — generating
+custom rebuttal text is a materially harder, riskier text-generation problem (prone to tone-deaf or
+factually wrong output). What's here is a starting frame for a human moderator or responder, not a script
+to paste verbatim. See `narrative_harm_classifier/classifier/counter_narrative.py` for the full mapping.
+
+---
+
+## Provenance & tamper-evidence (in depth)
+
+Every `ClassificationResult` carries a `content_hash` — SHA-256 of `(text, context, taxonomy_version)`.
+It's deterministic: the same input under the same taxonomy version always hashes the same, regardless of
+when it's computed, so it can be used to verify "this exact text was classified under this exact taxonomy
+version" independent of any particular run.
+
+For escalation tracking, each `Observation` is chained to the one before it — `record_hash` is a hash of
+the previous record's hash plus this record's fields, the same idea as a git commit chain or a minimal
+Merkle-style ledger. Altering any historical record (directly in the database, bypassing the API) changes
+its hash, which no longer matches what every later record's hash was computed from:
+
+```bash
+nhc track verify <source_id>
+```
+
+reports `Chain intact: YES` or, on a tampered history, `NO — TAMPERING DETECTED` plus the first broken
+observation id (also `GET /tracking/{source_id}/verify`). This **detects** tampering; it does not
+**prevent** it — nothing stops someone with direct database access from recomputing the whole chain to
+hide their edit. For real accountability-workflow use, pair this with normal database access controls and
+backups, not as a substitute for them.
+
+---
+
 ## Performance
 
 Measured by running [`scripts/measure_performance.py`](scripts/measure_performance.py) yourself — these
@@ -323,15 +441,17 @@ for the contextual-language gaps in [Limitations](#limitations).
 
 ## Limitations
 
-Beyond the "known limitation" already noted in [Status & roadmap](#status--roadmap) (English-only), it's
-worth being explicit about what a rule/heuristic engine like this one structurally cannot do, rather than
-implying "no weak points" means "no limitations":
+It's worth being explicit about what a rule/heuristic engine like this one structurally cannot do, rather
+than implying "the benchmark is clean" means "there are no limitations":
 
 - **Sarcasm and irony** — text that means the opposite of its literal words ("oh sure, THEY'RE the real
   victims here") reads the same as sincere language to a pattern matcher. There's no heuristic for this
   in the current engine.
-- **Multilingual / cross-lingual input** — the identity-anchor and harm-pattern regexes are English-only;
-  the same harmful claim in another language will not be detected at all, not just detected poorly.
+- **Coverage is 8 languages, not all languages, and 3 of the 8 are seed-vocabulary-only** — Spanish,
+  French, Russian, and Arabic get full detection rigor; Igbo, Yoruba, and Hausa are explicitly
+  `experimental` (see [Multilingual support](#multilingual-support-in-depth)) because I don't have the
+  same depth of training data for them, and none of the eight — including the "verified" tier — have had
+  native-speaker review. Every other language is simply not detected at all.
 - **General contextual/pragmatic reasoning** — the negation, counter-speech, and benign-context heuristics
   (see [CONTRIBUTING.md](CONTRIBUTING.md#how-the-engine-handles-negation-counter-speech-and-obfuscation))
   cover specific, named patterns. They are not a substitute for actually understanding what a sentence
@@ -340,9 +460,10 @@ implying "no weak points" means "no limitations":
   pass because specific phrasings were added to `HARM_PATTERNS` after being identified. A genuinely novel
   way of implying the same harm without using any covered phrase or trigger word will not be caught until
   someone notices the gap and adds a pattern for it.
-- **Evolving slang and coded language** — dog-whistles, new euphemisms, and community-specific coded
-  terms change faster than any static pattern list can track, and there is currently no mechanism (curated
-  lexicon, crowd-sourced updates, or model-based generalization) for keeping up automatically.
+- **Evolving slang and coded language** — the [dog-whistle lexicon](#dog-whistle-lexicon-in-depth) is a
+  ~12-entry seed list of well-documented terms, not a comprehensive or self-updating one. New euphemisms
+  and community-specific coded terms outpace any static list, English-only for now, and there's no
+  crowd-sourcing or model-based generalization mechanism yet — only manual curation via PR.
 
 None of this is hidden in the benchmark numbers on purpose — the benchmark measures what it measures
 (this specific, versioned test suite), and a clean pass on it is a floor, not a ceiling. If you're
@@ -356,10 +477,12 @@ classification.
 
 ```mermaid
 flowchart TD
-    A["Input text"] --> B{"Identity anchor\ndetected?"}
+    A["Input text + language"] --> LP["Load language patterns\n(falls back to en if unavailable)"]
+    LP --> B{"Identity anchor\ndetected?"}
     B -- "no" --> Z["NO HARM"]
     B -- "yes" --> C["Azure Text Analytics\n(sentiment + NER, optional)"]
-    C --> D["Multi-signal pattern matching\n(taxonomy rows)"]
+    C --> D["Multi-signal pattern matching\n(taxonomy rows, per language)"]
+    C --> DW["Dog-whistle lexicon match\n(English-only, requires anchor too)"]
 
     subgraph M["Harm mechanisms checked"]
         direction LR
@@ -372,14 +495,15 @@ flowchart TD
     end
 
     D --> M
+    DW --> M
     M --> E{"Negated / counter-speech /\nbenign context?"}
     E -- "yes, suppress" --> Z
     E -- "no" --> F["Weighted score aggregation\n(signal_weight × Azure amplifier)"]
     F --> G["Ambiguity resolution\n(highest_weight_wins + conservative tie-break)"]
     G --> H{"score ≥ decision_threshold?"}
     H -- "no" --> Z
-    H -- "yes" --> I["ClassificationResult\n(harm_category, confidence, rationale)"]
-    I -.->|"optional"| J["Escalation tracking:\npersist Observation against source_id"]
+    H -- "yes" --> I["ClassificationResult\n(harm_category, confidence, rationale,\ncounter_narrative_guidance, content_hash)"]
+    I -.->|"optional"| J["Escalation tracking:\npersist Observation\n(chained record_hash) against source_id"]
     J --> K["SourceProfile\n(severity trend, risk level)"]
 ```
 
@@ -410,6 +534,7 @@ sequenceDiagram
 narrative-harm-classifier/
 ├── pyproject.toml                 # pip-installable package, console script `nhc`
 ├── Dockerfile / docker-compose.yml
+├── scripts/measure_performance.py # Reproducible latency/memory/throughput measurement
 ├── narrative_harm_classifier/
 │   ├── cli.py                     # `nhc` CLI — classify / serve / track / benchmark
 │   ├── api/
@@ -417,30 +542,41 @@ narrative-harm-classifier/
 │   │   └── routes/
 │   │       ├── classify.py        # POST /classify + /classify/batch
 │   │       ├── validate.py        # POST /validate/dehumanization + /custom
-│   │       ├── tracking.py        # POST /tracking/{source_id}/observe, GET /tracking[/{source_id}]
+│   │       ├── tracking.py        # POST /tracking/{source_id}/observe|verify, GET /tracking[/{source_id}]
 │   │       ├── benchmark.py       # POST /benchmark/run
 │   │       └── health.py
 │   ├── classifier/
+│   │   ├── factory.py             # Shared engine/tracker/runner/validator construction (no duplicated wiring)
+│   │   ├── counter_narrative.py   # harm_mechanism -> general counter-messaging guidance
+│   │   ├── provenance.py          # content_hash + tamper-evident record_hash chain
 │   │   ├── taxonomy/loader.py     # Versioned taxonomy config loader (cached)
 │   │   ├── rules/
-│   │   │   ├── engine.py          # Core multi-dimensional classification engine
+│   │   │   ├── engine.py          # Core multi-language, multi-signal classification engine
+│   │   │   ├── patterns_loader.py # Per-language vocabulary loader (precompiled regex)
+│   │   │   ├── dogwhistles.py     # Coded-language lexicon loader + detector
 │   │   │   └── azure_nlp.py       # Azure Text Analytics connector (graceful fallback)
 │   │   ├── validators/
 │   │   │   ├── performance.py     # Legacy 18-sample held-out validator (Phase 1 gate)
-│   │   │   └── benchmark.py       # Templated functional-test benchmark generator + runner
+│   │   │   ├── benchmark.py       # Templated functional-test benchmark generator + runner
+│   │   │   └── i18n_smoke.py      # Per-language smoke test runner
 │   │   └── tracking/
-│   │       ├── models.py          # Severity ladder, Observation, SourceProfile
+│   │       ├── models.py          # Severity ladder, Observation (+ hash chain fields), SourceProfile
 │   │       ├── store.py           # SQLAlchemy-backed persistence (SQLite by default, Postgres-ready)
-│   │       └── tracker.py         # Trend/risk computation
+│   │       └── tracker.py         # Trend/risk computation + verify_chain()
 │   ├── core/
 │   │   ├── config.py              # Settings via env vars (pydantic-settings)
-│   │   └── models.py              # Pydantic request/response schemas
+│   │   ├── models.py              # Pydantic request/response schemas
+│   │   └── yaml_loader.py         # Shared YAML-load helper (used by every loader above)
 │   └── data/
 │       ├── taxonomy_v1.yaml           # Versioned taxonomy spec, shipped as package data
-│       └── benchmark_templates.yaml   # Templated benchmark cases, shipped as package data
+│       ├── benchmark_templates.yaml   # Templated benchmark cases, shipped as package data
+│       ├── i18n_smoke_tests.yaml      # Small per-language smoke test cases
+│       ├── dogwhistles.yaml           # Coded-language lexicon seed list
+│       └── patterns/                  # One file per language: en, es, fr, ru, ar, ig, yo, ha
 ├── tests/
-│   ├── unit/                      # Engine + tracking unit tests
+│   ├── unit/                      # Engine, tracking, multilingual, dogwhistle, provenance, CLI tests
 │   ├── integration/                # Phase 1 milestone validation gate
+│   ├── api/                       # FastAPI route tests
 │   └── benchmark/                  # Benchmark structural tests
 └── .github/workflows/ci.yml
 ```
@@ -455,7 +591,8 @@ narrative-harm-classifier/
 ```json
 {
   "text": "These immigrants are nothing but vermin infesting our cities",
-  "context": "optional surrounding context"
+  "context": "optional surrounding context",
+  "language": "en"
 }
 ```
 
@@ -470,7 +607,12 @@ narrative-harm-classifier/
   "harm_mechanism": "animalization",
   "signals_matched": [...],
   "decision_rationale": "HARM DETECTED: animalization targeting national_origin. Confidence 0.900 ≥ threshold 0.650. Matched row D2.4a-001.",
-  "taxonomy_version": "1.0.0"
+  "taxonomy_version": "1.0.0",
+  "language": "en",
+  "language_confidence": "verified",
+  "dogwhistle_matched": null,
+  "counter_narrative_guidance": "Dehumanizing comparisons (to animals, vermin, disease) are a documented precursor to real-world violence against targeted groups...",
+  "content_hash": "f4505a843cabeb7f497910caa9d657d129aa58c47633e42364d402317dd4ff27"
 }
 ```
 
@@ -482,6 +624,8 @@ narrative-harm-classifier/
 
 ### `GET /tracking` — all tracked sources, sorted by risk
 
+### `GET /tracking/{source_id}/verify` — recompute the hash chain and confirm it's intact
+
 ### `POST /benchmark/run` — run the templated benchmark suite
 
 ### `POST /validate/dehumanization` — legacy Phase 1 milestone gate (18-sample set)
@@ -492,15 +636,21 @@ narrative-harm-classifier/
 
 ## Classification logic (D2.4a spec)
 
-1. **Identity anchor check** — text must reference a target group. Configurable via
+1. **Language vocabulary load** — resolves `language` to a `LanguagePatterns` set; unrecognized codes
+   fall back to English with a note in the rationale.
+2. **Identity anchor check** — text must reference a target group. Configurable via
    `require_target_present` in the taxonomy YAML.
-2. **Harm pattern matching** — regex patterns per `harm_mechanism` across all taxonomy rows.
-3. **Azure NLP amplification** — optional sentiment amplification; degrades gracefully without
+3. **Harm pattern matching** — regex patterns per `harm_mechanism` across all taxonomy rows, plus a
+   dog-whistle lexicon match (English-only) contributing an additional signal through the same pipeline.
+4. **Suppression** — negation-cue window, counter-speech (reporting + condemnation cues), and
+   benign-context heuristics can discard a match before it's scored.
+5. **Azure NLP amplification** — optional sentiment amplification; degrades gracefully without
    credentials.
-4. **Weighted aggregation** — `score = signal_weight × azure_amplifier`.
-5. **Ambiguity resolution** — `highest_weight_wins` for multi-signal conflicts; `conservative`
+6. **Weighted aggregation** — `score = signal_weight × azure_amplifier`.
+7. **Ambiguity resolution** — `highest_weight_wins` for multi-signal conflicts; `conservative`
    tie-break.
-6. **Decision** — `score ≥ decision_threshold` → harmful, with a full rationale string.
+8. **Decision** — `score ≥ decision_threshold` → harmful, with a full rationale string, a
+   `content_hash`, and (when harmful) `counter_narrative_guidance`.
 
 All classification parameters live in `narrative_harm_classifier/data/taxonomy_v1.yaml`, versioned and
 pinned in every `ClassificationResult` for reproducibility.
@@ -518,6 +668,9 @@ Copy `.env.example` to `.env`. Key settings:
 | `AZURE_TEXT_ANALYTICS_ENDPOINT` / `_KEY` | unset | Optional NLP amplification |
 | `TAXONOMY_CONFIG_PATH` | packaged `taxonomy_v1.yaml` | Override with a custom taxonomy |
 | `BENCHMARK_TEMPLATES_PATH` | packaged `benchmark_templates.yaml` | Override with custom benchmark cases |
+| `PATTERNS_DIR` | packaged `data/patterns/` | Override with your own per-language vocabulary files |
+| `DOGWHISTLES_PATH` | packaged `dogwhistles.yaml` | Override with a custom coded-language lexicon |
+| `I18N_SMOKE_TESTS_PATH` | packaged `i18n_smoke_tests.yaml` | Override with your own per-language smoke tests |
 
 ---
 
@@ -549,11 +702,34 @@ them, and contributions in that direction are welcome.
 
 **Can I use my own taxonomy or add new harm mechanisms?**
 Yes — the taxonomy is just a YAML file (`TAXONOMY_CONFIG_PATH` to override it), and the pattern list
-per mechanism lives in `classifier/rules/engine.py`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+per mechanism per language lives in `data/patterns/<lang>.yaml`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **Does it work in languages other than English?**
-Not yet — the identity-anchor and harm-pattern regexes are English-only. This is a known gap and a
-[roadmap](#status--roadmap) item, not a design constraint.
+Yes, for 7 additional languages — Spanish, French, Russian, and Arabic at the same detection rigor as
+English; Igbo, Yoruba, and Hausa as smaller, explicitly `experimental` seed vocabularies (see
+[Multilingual support](#multilingual-support-in-depth)). Any other language falls back to English rather
+than silently misclassifying. None of the eight — including the "verified" tier — have had
+native-speaker domain-expert review yet.
+
+**What's a "dog-whistle" and why does the engine check for them separately?**
+A coded term with a specific, documented bigoted meaning that looks innocuous without that context (e.g.
+"globalist" as an antisemitic conspiracy trope). It's not checked "separately" in the sense of a second
+decision path — it contributes a signal through the exact same scoring pipeline as a taxonomy row, still
+gated by the same identity-anchor requirement. See
+[Dog-whistle lexicon](#dog-whistle-lexicon-in-depth).
+
+**Does the counter-narrative guidance write a rebuttal for me?**
+No — it's general, templated guidance for the matched harm mechanism (e.g. "lead with accurate
+statistics" for criminalization-framed content), not a custom-generated rebuttal for your specific input.
+Auto-generating bespoke rebuttal text is a harder, riskier problem (tone-deaf or factually wrong output)
+that's out of scope here. See [Counter-narrative guidance](#counter-narrative-guidance).
+
+**What does the provenance hash actually protect against?**
+It makes tampering with a stored observation *detectable* (recomputing the chain shows exactly which
+record no longer matches), not *impossible* — someone with direct database write access could still
+recompute the whole chain to hide an edit. It's a tamper-evidence mechanism, not encryption or access
+control; pair it with real database security for anything that matters. See
+[Provenance & tamper-evidence](#provenance--tamper-evidence-in-depth).
 
 **Is the severity ladder / escalation model scientifically validated?**
 No, and the README and code comments say so deliberately. It's a simplified, explainable ordering
@@ -564,27 +740,39 @@ so a human can audit *why* a trend was flagged — not a peer-reviewed forecasti
 
 ## Status & roadmap
 
-**Currently shipped (Phase 1 + Phase 2):**
+**Currently shipped (Phase 1 + Phase 2 + Phase 3):**
 
 - Rule-based classification across 6 harm mechanisms / 3 categories, with optional Azure NLP
   amplification
+- **Multilingual support**: English, Spanish, French, Russian, Arabic (`verified`), plus Igbo, Yoruba,
+  Hausa (`experimental` seed vocabularies) — see [Multilingual support](#multilingual-support-in-depth)
+- **Dog-whistle / coded-language lexicon** — a curated, sourced seed list scored through the same
+  pipeline as the taxonomy — see [Dog-whistle lexicon](#dog-whistle-lexicon-in-depth)
+- **Counter-narrative guidance** — general, templated guidance per harm mechanism on harmful
+  classifications — see [Counter-narrative guidance](#counter-narrative-guidance)
+- **Provenance / tamper-evidence** — deterministic content hashing plus a tamper-evident hash chain
+  for tracked sources, with `nhc track verify` — see
+  [Provenance & tamper-evidence](#provenance--tamper-evidence-in-depth)
 - Escalation-chain tracking across sources with persistent storage
 - A ~190-case templated benchmark suite (precision 1.0 / recall 1.0 / FPR 0.0, 100% cross-group
   consistency, enforced as a CI gate) covering negation, counter-speech, obfuscated spelling, and
-  cross-group consistency
-- Installable package (`pip`/`docker`), CLI, library API, REST API, CI
+  cross-group consistency, plus a smaller per-language smoke test suite (`nhc benchmark i18n`)
+- Installable package (`pip`/`docker`), CLI, library API, REST API, CI (91% test coverage, enforced)
 
-**Known limitation:**
+**Known limitations:**
 
-- English-only — the identity-anchor and harm-pattern regexes don't yet cover other languages
+- Only 8 languages total, and 3 of those (Igbo, Yoruba, Hausa) are experimental-tier seed vocabularies,
+  not full coverage — see [Limitations](#limitations)
+- The dog-whistle lexicon is a ~12-entry seed list, English-only, not comprehensive or self-updating
+- Sarcasm, irony, and general contextual/pragmatic reasoning beyond the specific heuristics implemented
 
 **Not yet built (ideas, not commitments):**
 
-- Multilingual / low-resource-language support
-- A curated dog-whistle / coded-language lexicon layer
 - An LLM-assisted or hybrid classification path for the cases regex structurally can't handle
-- Counter-narrative / intervention suggestions alongside detection
-- Provenance/evidence-hashing for use in documentation or accountability workflows
+  (sarcasm, novel implicit phrasing, coded language outside the seed lexicon)
+- Multilingual dog-whistle lexicons (currently English-only)
+- Native-speaker review of any of the 8 current languages, and expansion beyond them
+- Crowd-sourced or automated dog-whistle lexicon updates
 
 If you want to work on any of these, open an issue or a PR — see [Contributing](#contributing).
 

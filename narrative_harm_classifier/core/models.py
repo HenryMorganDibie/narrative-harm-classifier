@@ -39,6 +39,13 @@ class ClassifyRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=10000, description="Text to classify")
     context: Optional[str] = Field(None, description="Optional surrounding context")
     request_id: Optional[str] = Field(None, description="Client-supplied idempotency key")
+    language: str = Field(
+        "en",
+        description=(
+            "ISO 639-1 language code of the text (explicit, not auto-detected). "
+            "Falls back to English with a rationale note if the code isn't available."
+        ),
+    )
 
 
 class BatchClassifyRequest(BaseModel):
@@ -72,6 +79,20 @@ class ClassificationResult(BaseModel):
     signals_matched: list[SignalMatch] = []
     decision_rationale: str
     taxonomy_version: str
+    language: str = Field("en", description="Language the text was classified as (echoes the request)")
+    language_confidence: str = Field(
+        "verified",
+        description="'verified' (well-resourced language) or 'experimental' (seed vocabulary, not native-speaker-reviewed)",
+    )
+    dogwhistle_matched: Optional[str] = Field(
+        None, description="Coded-language term that contributed a signal, if any"
+    )
+    counter_narrative_guidance: Optional[str] = Field(
+        None, description="General counter-messaging guidance for the matched harm mechanism, when harmful"
+    )
+    content_hash: str = Field(
+        ..., description="SHA-256 of (text, context, taxonomy_version) — deterministic, for provenance"
+    )
     classified_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:

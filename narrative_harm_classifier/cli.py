@@ -21,35 +21,14 @@ for _stream in (sys.stdout, sys.stderr):
 
 from narrative_harm_classifier.core.config import get_settings
 from narrative_harm_classifier.core.models import ClassifyRequest
-from narrative_harm_classifier.classifier.taxonomy.loader import load_taxonomy
-from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine
-from narrative_harm_classifier.classifier.rules.azure_nlp import AzureNLPClient
-from narrative_harm_classifier.classifier.tracking.store import get_store
-from narrative_harm_classifier.classifier.tracking.tracker import EscalationTracker
-from narrative_harm_classifier.classifier.validators.benchmark import BenchmarkRunner
+from narrative_harm_classifier.classifier.factory import build_engine, build_tracker, build_benchmark_runner
+from narrative_harm_classifier.classifier.validators.i18n_smoke import run_i18n_smoke
 
 app = typer.Typer(name="nhc", help="Narrative Harm Classifier — classify, track, and benchmark.")
 track_app = typer.Typer(help="Escalation-chain tracking across a source's observation history.")
 benchmark_app = typer.Typer(help="Templated functional-test benchmark suite.")
 app.add_typer(track_app, name="track")
 app.add_typer(benchmark_app, name="benchmark")
-
-
-def _build_engine() -> tuple[ClassificationEngine, str]:
-    settings = get_settings()
-    taxonomy = load_taxonomy(settings.taxonomy_config_path)
-    azure_client = AzureNLPClient(
-        endpoint=settings.azure_text_analytics_endpoint,
-        key=settings.azure_text_analytics_key,
-    )
-    return ClassificationEngine(taxonomy=taxonomy, azure_client=azure_client), taxonomy.version
-
-
-def _build_tracker() -> EscalationTracker:
-    settings = get_settings()
-    engine, _ = _build_engine()
-    store = get_store(settings.effective_tracking_db_url)
-    return EscalationTracker(engine=engine, store=store)
 
 
 @app.command()
@@ -68,10 +47,11 @@ def serve(
 def classify(
     text: str = typer.Argument(..., help="Text to classify"),
     context: Optional[str] = typer.Option(None, help="Optional surrounding context"),
+    language: str = typer.Option("en", "--language", "-l", help="ISO 639-1 language code (e.g. en, es, fr, ru, ar, ig, yo, ha)"),
 ):
     """Classify a single text item and print the full result as JSON."""
-    engine, _ = _build_engine()
-    result = engine.classify(ClassifyRequest(text=text, context=context))
+    engine = build_engine(get_settings())
+    result = engine.classify(ClassifyRequest(text=text, context=context, language=language))
     typer.echo(result.model_dump_json(indent=2))
 
 
@@ -79,10 +59,11 @@ def classify(
 def track_observe(
     source_id: str = typer.Argument(..., help="Identifier for the tracked source (URL, handle, doc id...)"),
     text: str = typer.Argument(..., help="Text to classify and append to this source's history"),
+    language: str = typer.Option("en", "--language", "-l", help="ISO 639-1 language code"),
 ):
     """Classify a text and append it to a source's escalation history."""
-    tracker = _build_tracker()
-    obs = tracker.observe(source_id, ClassifyRequest(text=text))
+    tracker = build_tracker(get_settings())
+    obs = tracker.observe(source_id, ClassifyRequest(text=text, language=language))
     typer.echo(obs.model_dump_json(indent=2))
 
 
@@ -92,7 +73,7 @@ def track_show(
     window: int = typer.Option(20, help="Number of most recent observations to consider"),
 ):
     """Show a source's current severity, trend, and risk level."""
-    tracker = _build_tracker()
+    tracker = build_tracker(get_settings())
     profile = tracker.profile(source_id, window=window)
     if profile.observation_count == 0:
         typer.echo(f"No observations recorded for source '{source_id}'", err=True)
@@ -109,7 +90,7 @@ def track_show(
 @track_app.command("list")
 def track_list(window: int = typer.Option(20, help="Number of most recent observations to consider per source")):
     """List all tracked sources, sorted by risk (highest first)."""
-    tracker = _build_tracker()
+    tracker = build_tracker(get_settings())
     profiles = tracker.list_profiles(window=window)
     if not profiles:
         typer.echo("No tracked sources yet.")
@@ -123,16 +104,30 @@ def track_list(window: int = typer.Option(20, help="Number of most recent observ
         )
 
 
+@track_app.command("verify")
+def track_verify(source_id: str = typer.Argument(..., help="Source whose observation history to verify")):
+    """
+    Recompute the tamper-evident hash chain for a source's observation
+    history and report whether it's intact.
+    """
+    tracker = build_tracker(get_settings())
+    result = tracker.verify_chain(source_id)
+    if result.observation_count == 0:
+        typer.echo(f"No observations recorded for source '{source_id}'", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(f"Source:        {result.source_id}")
+    typer.echo(f"Observations:  {result.observation_count}")
+    typer.echo(f"Chain intact:  {'YES' if result.intact else 'NO — TAMPERING DETECTED'}")
+    if not result.intact:
+        typer.echo(f"First broken link at observation id: {result.first_broken_id}", err=True)
+        raise typer.Exit(code=1)
+
+
 @benchmark_app.command("run")
 def benchmark_run():
     """Run the templated benchmark suite and print aggregate + per-test-type results."""
-    settings = get_settings()
-    engine, taxonomy_version = _build_engine()
-    runner = BenchmarkRunner(
-        engine=engine,
-        taxonomy_version=taxonomy_version,
-        templates_path=settings.benchmark_templates_path,
-    )
+    runner = build_benchmark_runner(get_settings())
     report = runner.run()
 
     typer.echo(f"Taxonomy version: {report.taxonomy_version}")
@@ -153,6 +148,28 @@ def benchmark_run():
         typer.echo("Inconsistent templates (engine's verdict changed depending on which group was named):")
         for g in inconsistent:
             typer.echo(f"  {g.template_id} ({g.test_type}): {json.dumps(g.verdicts)}")
+
+
+@benchmark_app.command("i18n")
+def benchmark_i18n():
+    """
+    Run the smaller per-language smoke test suite (see data/i18n_smoke_tests.yaml —
+    NOT a full replication of the English benchmark; see README Limitations
+    for why the experimental-tier languages get lighter coverage).
+    """
+    settings = get_settings()
+    engine = build_engine(settings)
+    report = run_i18n_smoke(engine, settings.i18n_smoke_tests_path)
+
+    typer.echo(f"Total cases: {report.total}   Passed: {report.passed}\n")
+    typer.echo(f"{'LANGUAGE':<10}{'PASSED':<10}{'TOTAL':<10}")
+    for lang, (passed, total) in sorted(report.by_language.items()):
+        typer.echo(f"{lang:<10}{passed:<10}{total:<10}")
+
+    if report.failed_cases:
+        typer.echo("\nFailed cases:")
+        for c in report.failed_cases:
+            typer.echo(f"  [{c.language}] expected={c.expected_is_harmful} got={c.actual_is_harmful}: {c.text!r}")
 
 
 def main():

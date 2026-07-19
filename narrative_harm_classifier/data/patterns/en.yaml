@@ -1,0 +1,133 @@
+# English detection vocabulary — moved out of engine.py so per-language
+# vocabulary is data, not code, consistent with the taxonomy_v1.yaml approach.
+# This is the reference/most rigorously covered language.
+
+language: en
+confidence: verified
+
+identity_anchors:
+  religion:
+    - "\\b(christian|muslim|jewish|hindu|buddhist|sikh|atheist|catholic|protestant)\\b"
+    - "\\b(islam|christianity|judaism|hinduism|buddhism)\\b"
+  race_ethnicity:
+    - "\\b(black|white|asian|hispanic|latino|arab|indigenous|native)\\b"
+    - "\\b(african|european|chinese|mexican|korean|japanese)\\b"
+  gender:
+    - "\\b(women|men|female|male|nonbinary|transgender|trans)\\b"
+    - "\\b(girls|boys|ladies|gentlemen)\\b"
+  national_origin:
+    - "\\b(immigrant|immigrants|refugee|refugees|foreigner|foreigners|migrant|migrants|alien|aliens)\\b"
+    - "\\b(american|mexican|chinese|russian|iranian|north korean)\\b"
+  political_affiliation:
+    - "\\b(democrat|republican|liberal|conservative|socialist|communist|fascist)s?\\b"
+    - "\\b(left.?wing|right.?wing|antifa|maga)\\b"
+
+harm_patterns:
+  animalization:
+    - "\\b(vermin|cockroach|rat|pest|animal|beast|savage|subhuman|ape|monkey)\\b"
+    - "\\b(infest|swarm|plague|infestation)\\b"
+    - "less than human"
+    - "not (even )?human"
+    - "multiply(ing)? out of control"
+    - "take over everything"
+  demonization:
+    - "\\b(demonic|satanic|evil|devil|diabolical|sinister|vile|wicked)\\b"
+    - "\\b(spawn of|servants? of (evil|satan|the devil))\\b"
+    - "pure evil"
+    - "dark forces working against"
+  objectification:
+    - "\\b(object|property|possession|belong to|owned by)\\b"
+    - "\\b(exist(s)? (only |just )?(to|for) (serve|pleasure|use))\\b"
+    - "just (?:an? )?(?:object|thing|tool)"
+    - "no value beyond what (they|it) (can |could )?provide"
+  criminalization:
+    - "\\b(all .{0,20} (are |'re )?(criminal|criminal|rapist|murderer|thief|terrorist))\\b"
+    - "\\b(bring(ing)? crime|bringing drugs|criminals and rapists)\\b"
+    - "\\b(deport (them|all))\\b"
+    - "responsible for (most|all) (of )?the problems"
+  direct_call_to_violence:
+    - "\\b(attack|kill|destroy|eliminate|exterminate|wipe out|get rid of)\\b.{0,30}\\b(them|those|these|the \\w+s?)\\b"
+    - "\\b(time to (fight|attack|eliminate))\\b"
+    - "\\b(must (die|be (killed|eliminated|destroyed)))\\b"
+    - "something needs to happen to"
+  false_attribution:
+    - "\\ball\\s.{0,20}\\s*(want to|secretly|are (all|really)?)"
+    - "\\b(they (all|always|never) )\\b.{0,30}\\b(want|plan|scheme|conspire)\\b"
+    - "\\b(their (real|secret|true) (agenda|goal|plan))\\b"
+    - "goals they (won't|will not|wont) publicly admit"
+
+negation_cues:
+  - "not"
+  - "never"
+  - "no longer"
+  - "false that"
+  - "isn't"
+  - "aren't"
+  - "wasn't"
+  - "weren't"
+  - "doesn't"
+  - "don't"
+  - "didn't"
+  - "won't"
+  - "wouldn't"
+  - "cannot"
+  - "can't"
+
+reporting_cues:
+  - "some commentators"
+  - "some say"
+  - "calling"
+  - "treating"
+  - "politicians who say"
+  - "rhetoric claiming"
+  - "conspiracy theories claiming"
+  - "claims that"
+  - "claim that"
+  - "people who say"
+
+condemnation_cues:
+  - "dangerous"
+  - "bigoted"
+  - "nonsense"
+  - "moral catastrophe"
+  - "spreading dangerous lies"
+  - "spreading lies"
+  - "led to real-world violence"
+  - "led to violence"
+  - "caused real harm"
+  - "monstrous"
+  - "fuels violence"
+  - "fuel violence"
+  - "dehumanizing"
+  - "harmful stereotype"
+  - "is wrong"
+  - "is false"
+
+benign_context_cues:
+  - "pest control"
+  - "insect"
+  - "insects"
+  - "wildlife"
+  - "documentary"
+  - "horror movie"
+  - "horror film"
+  - "film critic"
+  - "video game"
+  - "self-defense class"
+  - "academic"
+  - "theory"
+  - "statistics"
+  - "policy debate"
+  - "policy issue"
+  - "opposition party"
+  - "opposition parties"
+
+obfuscation_map:
+  "0": "o"
+  "1": "i"
+  "3": "e"
+  "4": "a"
+  "5": "s"
+  "7": "t"
+  "@": "a"
+  "$": "s"

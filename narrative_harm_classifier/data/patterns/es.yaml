@@ -1,0 +1,99 @@
+# Spanish detection vocabulary. "verified" confidence: Spanish is a
+# well-resourced language and this vocabulary follows the same rigor as
+# English, but has not been reviewed by a native-speaker domain expert —
+# treat as a solid starting point, not a guarantee of zero gaps.
+
+language: es
+confidence: verified
+
+identity_anchors:
+  religion:
+    - "\\b(cristian[oa]s?|musulm[aá]n(?:a|es|as)?|jud[ií][oa]s?|hind[uú]es?|budistas?|sij|ate[oa]s?|cat[oó]lic[oa]s?|protestantes?)\\b"
+    - "\\b(islam|cristianismo|juda[ií]smo|hinduismo|budismo)\\b"
+  race_ethnicity:
+    - "\\b(negr[oa]s?|blanc[oa]s?|asi[aá]tic[oa]s?|hispan[oa]s?|latin[oa]s?|[aá]rabes?|ind[ií]gena[s]?|nativ[oa]s?)\\b"
+    - "\\b(african[oa]s?|europe[oa]s?|chin[oa]s?|mexican[oa]s?|corean[oa]s?|japon[eé]s(?:a|es)?)\\b"
+  gender:
+    - "\\b(mujer(?:es)?|hombres?|no binari[oa]s?|transg[eé]nero|trans)\\b"
+    - "\\b(ni[ñn]as?|ni[ñn]os?|damas?|caballeros?)\\b"
+  national_origin:
+    - "\\b(inmigrantes?|refugiad[oa]s?|extranjer[oa]s?|migrantes?)\\b"
+    - "\\b(american[oa]s?|mexican[oa]s?|chin[oa]s?|rus[oa]s?|iran[ií]es?|norcorean[oa]s?)\\b"
+  political_affiliation:
+    - "\\b(dem[oó]cratas?|republicanos?|republicanas?|liberales?|conservador(?:a|es|as)?|socialistas?|comunistas?|fascistas?)\\b"
+    - "\\b(izquierdistas?|derechistas?)\\b"
+
+harm_patterns:
+  animalization:
+    - "\\b(alima[ñn]as?|cucarachas?|ratas?|plaga|animales?|bestias?|salvajes?|infrahumanos?|infrahumanas?|simios?|monos?)\\b"
+    - "\\b(infestan?|infestando|infestaci[oó]n)\\b"
+    - "menos que humanos"
+    - "ni siquiera son humanos"
+  demonization:
+    - "\\b(demon[ií]ac[oa]s?|sat[aá]nic[oa]s?|malvad[oa]s?|diablo|diab[oó]lic[oa]s?|siniestr[oa]s?|vil(?:es)?|pervers[oa]s?)\\b"
+    - "pura maldad"
+  objectification:
+    - "\\b(objetos?|propiedad|posesi[oó]n)\\b"
+    - "existen solo para (servir|complacer|usar)"
+    - "solo (son|es) (un objeto|una cosa|una herramienta)"
+  criminalization:
+    - "\\btodos los .{0,20} son (criminales|violadores|asesinos|ladrones|terroristas)\\b"
+    - "\\b(traen crimen|traen drogas|criminales y violadores)\\b"
+    - "\\bdeportarlos a todos\\b"
+  direct_call_to_violence:
+    - "\\b(atacar|matar|destruir|eliminar|exterminar)\\b.{0,30}\\b(a ellos|a esos|a estos)\\b"
+    - "\\bes hora de (luchar|atacar|eliminar)\\b"
+    - "\\bdeben (morir|ser eliminados|ser destruidos)\\b"
+  false_attribution:
+    - "\\btodos .{0,20} en secreto\\b"
+    - "\\bsu (verdadera|secreta) agenda\\b"
+
+negation_cues:
+  - "no"
+  - "nunca"
+  - "ya no"
+  - "es falso que"
+  - "no es"
+  - "no son"
+
+reporting_cues:
+  - "algunos dicen"
+  - "algunos comentaristas"
+  - "llamar a"
+  - "quienes dicen"
+  - "la teor[ií]a de que"
+
+condemnation_cues:
+  - "peligroso"
+  - "peligrosa"
+  - "prejuicioso"
+  - "sinsentido"
+  - "catastrofe moral"
+  - "difunde mentiras"
+  - "ha causado violencia"
+  - "es falso"
+  - "es incorrecto"
+
+benign_context_cues:
+  - "control de plagas"
+  - "insectos"
+  - "vida silvestre"
+  - "documental"
+  - "pelicula de terror"
+  - "cr[ií]tico de cine"
+  - "videojuego"
+  - "clase de defensa personal"
+  - "academico"
+  - "teoria"
+  - "estadisticas"
+  - "debate de politicas"
+
+obfuscation_map:
+  "0": "o"
+  "1": "i"
+  "3": "e"
+  "4": "a"
+  "5": "s"
+  "7": "t"
+  "@": "a"
+  "$": "s"

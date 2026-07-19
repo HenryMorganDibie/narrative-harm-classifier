@@ -1,0 +1,96 @@
+# French detection vocabulary. "verified" confidence — same rigor as English,
+# not yet reviewed by a native-speaker domain expert.
+
+language: fr
+confidence: verified
+
+identity_anchors:
+  religion:
+    - "\\b(chr[eé]tiens?|chr[eé]tiennes?|musulmans?|musulmanes?|juifs?|juives?|hindous?|hindoues?|bouddhistes?|sikh|ath[eé]es?|catholiques?|protestants?|protestantes?)\\b"
+    - "\\b(islam|christianisme|juda[ïi]sme|hindouisme|bouddhisme)\\b"
+  race_ethnicity:
+    - "\\b(noirs?|noires?|blancs?|blanches?|asiatiques?|hispaniques?|latinos?|arabes?|indig[eè]nes?|autochtones?)\\b"
+    - "\\b(africains?|africaines?|europ[eé]ens?|europ[eé]ennes?|chinois(?:es?)?|mexicains?|mexicaines?|cor[eé]ens?|cor[eé]ennes?|japonais(?:es?)?)\\b"
+  gender:
+    - "\\b(femmes?|hommes?|non-binaires?|transgenres?|trans)\\b"
+    - "\\b(filles?|gar[cç]ons?|dames?|messieurs?)\\b"
+  national_origin:
+    - "\\b(immigr[eé]s?|immigr[eé]es?|r[eé]fugi[eé]s?|r[eé]fugi[eé]es?|[eé]trangers?|[eé]trang[eè]res?|migrants?|migrantes?)\\b"
+    - "\\b(am[eé]ricains?|mexicains?|chinois(?:es?)?|russes?|iraniens?|nord-cor[eé]ens?)\\b"
+  political_affiliation:
+    - "\\b(d[eé]mocrates?|r[eé]publicains?|r[eé]publicaines?|lib[eé]raux|lib[eé]rales?|conservateurs?|conservatrices?|socialistes?|communistes?|fascistes?)\\b"
+    - "\\b(gauchistes?|droitistes?)\\b"
+
+harm_patterns:
+  animalization:
+    - "\\b(vermine|cafards?|rats?|peste|animaux|animal|b[eê]tes?|sauvages?|sous-humains?|sous-humaines?|singes?)\\b"
+    - "\\b(infeste|infestant|infestation|envahissent)\\b"
+    - "moins qu'humains"
+    - "m[eê]me pas humains"
+  demonization:
+    - "\\b(d[eé]moniaques?|sataniques?|mal[eé]fiques?|diable|diaboliques?|sinistres?|vils?)\\b"
+    - "pur mal"
+  objectification:
+    - "\\b(objets?|propri[eé]t[eé]|possession)\\b"
+    - "existent seulement pour (servir|plaire|utiliser)"
+    - "ne sont qu'(un objet|une chose|un outil)"
+  criminalization:
+    - "\\btous les .{0,20} sont des (criminels|violeurs|meurtriers|voleurs|terroristes)\\b"
+    - "\\b(apportent le crime|apportent la drogue|criminels et violeurs)\\b"
+    - "\\bexpulsez.les tous\\b"
+  direct_call_to_violence:
+    - "\\b(attaquer|tuer|d[eé]truire|[eé]liminer|exterminer)\\b.{0,30}\\b(eux|ces gens)\\b"
+    - "\\bil est temps de (se battre|attaquer|[eé]liminer)\\b"
+    - "\\bdoivent (mourir|[eê]tre [eé]limin[eé]s|[eê]tre d[eé]truits)\\b"
+  false_attribution:
+    - "\\btous .{0,20} veulent secr[eè]tement\\b"
+    - "\\bleur (v[eé]ritable|secret) agenda\\b"
+
+negation_cues:
+  - "pas"
+  - "jamais"
+  - "ne plus"
+  - "il est faux que"
+  - "ce n'est pas"
+  - "ne sont pas"
+
+reporting_cues:
+  - "certains disent"
+  - "certains commentateurs"
+  - "appeler"
+  - "ceux qui disent"
+  - "la th[eé]orie selon laquelle"
+
+condemnation_cues:
+  - "dangereux"
+  - "dangereuse"
+  - "haineux"
+  - "absurde"
+  - "catastrophe morale"
+  - "propage des mensonges"
+  - "a men[eé] [aà] la violence"
+  - "c'est faux"
+
+benign_context_cues:
+  - "lutte antiparasitaire"
+  - "insectes"
+  - "faune sauvage"
+  - "documentaire"
+  - "film d'horreur"
+  - "critique de cin[eé]ma"
+  - "jeu vid[eé]o"
+  - "cours d'autod[eé]fense"
+  - "universitaire"
+  - "th[eé]orie"
+  - "statistiques"
+  - "d[eé]bat politique"
+
+obfuscation_map:
+  "0": "o"
+  "1": "i"
+  "3": "e"
+  "4": "a"
+  "5": "s"
+  "7": "t"
+  "@": "a"
+  "$": "s"

@@ -6,11 +6,11 @@ to taxonomy rows, thresholds, and ambiguity resolution rules.
 Supports M1 baseline reproducibility via version pinning.
 """
 
-import yaml
-from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass, field
 from functools import lru_cache
+
+from narrative_harm_classifier.core.yaml_loader import load_yaml_file
 
 
 @dataclass
@@ -77,12 +77,7 @@ class TaxonomyConfig:
 @lru_cache(maxsize=8)
 def load_taxonomy(config_path: str) -> TaxonomyConfig:
     """Load and parse taxonomy YAML. Cached per path for performance."""
-    path = Path(config_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Taxonomy config not found: {config_path}")
-
-    with open(path) as f:
-        raw = yaml.safe_load(f)
+    raw = load_yaml_file(config_path)
 
     categories = []
     for cat_raw in raw.get("categories", []):

@@ -1,0 +1,40 @@
+# Yoruba detection vocabulary. "experimental" confidence — DELIBERATELY a
+# small seed list, not comparable in coverage or reliability to the
+# verified-tier languages (en/es/fr/ru/ar). I do not have the same depth of
+# training data for Yoruba that I have for those languages, and this has not
+# been reviewed by a native speaker. Treat any result under this language as
+# a starting point that needs human verification — see README Limitations.
+# No negation/counter-speech heuristics are implemented for this language
+# yet (left empty rather than guessed).
+#
+# Contributions from Yoruba speakers to expand and correct this file are
+# very welcome — see CONTRIBUTING.md.
+
+language: yo
+confidence: experimental
+
+identity_anchors:
+  religion:
+    - "\\b(onigbagbo|kristeni|musulumi|awon juu)\\b"
+  gender:
+    - "\\b(obinrin|okunrin)\\b"
+  national_origin:
+    - "\\b(ajoji)\\b"
+
+harm_patterns:
+  animalization:
+    - "\\b(eranko)\\b"
+  demonization:
+    - "\\b(emi esu)\\b"
+  objectification: []
+  criminalization: []
+  direct_call_to_violence:
+    - "\\b(e pa won)\\b"
+  false_attribution: []
+
+negation_cues: []
+reporting_cues: []
+condemnation_cues: []
+benign_context_cues: []
+
+obfuscation_map: {}

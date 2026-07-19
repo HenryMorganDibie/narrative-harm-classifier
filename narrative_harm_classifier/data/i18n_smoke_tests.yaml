@@ -1,0 +1,82 @@
+# Small per-language smoke test set — NOT a full replication of the 192-case
+# English benchmark. English's benchmark suite required native-fluency,
+# adversarial-case design (negation, counter-speech, obfuscation) that isn't
+# realistic to replicate with equal confidence across 7 additional languages,
+# three of which (ig/yo/ha) are explicitly experimental-tier for me (see
+# README Limitations). This just confirms the basic explicit-positive /
+# no-anchor-negative pipeline works per language — a floor, not a ceiling.
+
+cases:
+  # --- Spanish (verified) ---
+  - language: es
+    text: "Todos los inmigrantes son criminales, deportarlos a todos"
+    expected_is_harmful: true
+  - language: es
+    text: "Las mujeres solo son un objeto"
+    expected_is_harmful: true
+  - language: es
+    text: "Los inmigrantes deben ser eliminados de nuestro pais"
+    expected_is_harmful: true
+  - language: es
+    text: "El clima esta agradable hoy"
+    expected_is_harmful: false
+
+  # --- French (verified) ---
+  - language: fr
+    text: "Tous les musulmans sont des criminels"
+    expected_is_harmful: true
+  - language: fr
+    text: "Ils doivent etre elimines de notre pays"
+    expected_is_harmful: false  # no identity anchor present — should NOT fire
+  - language: fr
+    text: "Les musulmans doivent etre elimines"
+    expected_is_harmful: true
+  - language: fr
+    text: "Le temps est agreable aujourd'hui"
+    expected_is_harmful: false
+
+  # --- Russian (verified) ---
+  - language: ru
+    text: "Все иммигранты преступники"
+    expected_is_harmful: true
+  - language: ru
+    text: "Мусульмане дьявольский народ"
+    expected_is_harmful: true
+  - language: ru
+    text: "Сегодня хорошая погода"
+    expected_is_harmful: false
+
+  # --- Arabic (verified) ---
+  - language: ar
+    text: "كلهم مهاجرون مجرمون"
+    expected_is_harmful: true
+  - language: ar
+    text: "المسلمون شيطاني"
+    expected_is_harmful: true
+  - language: ar
+    text: "الطقس جميل اليوم"
+    expected_is_harmful: false
+
+  # --- Igbo (experimental — seed vocabulary only) ---
+  - language: ig
+    text: "ndị kraịst bụ anụmanụ"
+    expected_is_harmful: true
+  - language: ig
+    text: "Anyị na-eri nri taa"
+    expected_is_harmful: false
+
+  # --- Yoruba (experimental — seed vocabulary only) ---
+  - language: yo
+    text: "obinrin ni eranko"
+    expected_is_harmful: true
+  - language: yo
+    text: "A n je ounje loni"
+    expected_is_harmful: false
+
+  # --- Hausa (experimental — seed vocabulary only) ---
+  - language: ha
+    text: "mata sun dabbobi"
+    expected_is_harmful: true
+  - language: ha
+    text: "Muna cin abinci yau"
+    expected_is_harmful: false

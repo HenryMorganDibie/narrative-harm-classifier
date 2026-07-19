@@ -6,9 +6,7 @@ Runs held-out sample validation and returns performance reports.
 from fastapi import APIRouter, Depends, HTTPException
 from narrative_harm_classifier.core.models import ValidationSample, ValidationReport
 from narrative_harm_classifier.core.config import get_settings, Settings
-from narrative_harm_classifier.classifier.taxonomy.loader import load_taxonomy
-from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine
-from narrative_harm_classifier.classifier.rules.azure_nlp import AzureNLPClient
+from narrative_harm_classifier.classifier.factory import build_validator
 from narrative_harm_classifier.classifier.validators.performance import (
     PerformanceValidator,
     DEHUMANIZATION_VALIDATION_SAMPLES,
@@ -18,13 +16,7 @@ router = APIRouter()
 
 
 def get_validator(settings: Settings = Depends(get_settings)) -> PerformanceValidator:
-    taxonomy = load_taxonomy(settings.taxonomy_config_path)
-    azure_client = AzureNLPClient(
-        endpoint=settings.azure_text_analytics_endpoint,
-        key=settings.azure_text_analytics_key,
-    )
-    engine = ClassificationEngine(taxonomy=taxonomy, azure_client=azure_client)
-    return PerformanceValidator(engine=engine, taxonomy=taxonomy)
+    return build_validator(settings)
 
 
 @router.post(

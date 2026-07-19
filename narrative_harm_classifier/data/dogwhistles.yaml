@@ -1,0 +1,134 @@
+# Dog-whistle / coded-language lexicon — seed list.
+#
+# This is a small, explicitly-sourced starting set (~12 entries), not an
+# attempt at a comprehensive list. Coded language evolves faster than any
+# static list can track (see README Limitations) — extend it via PR as new
+# documented terms surface, citing a public source the way these entries do.
+#
+# signal_weight is deliberately lower than a typical explicit taxonomy row
+# (0.55-0.70 vs 0.70-0.95) for ambiguous terms that have legitimate
+# non-bigoted usage in some contexts (e.g. "globalist" can just mean
+# "pro-globalization"). These only ever fire when an identity anchor is also
+# present in the text (same require_target_present gate as everything else),
+# which limits — but does not eliminate — false-positive risk on ambiguous
+# terms. Unambiguous, purpose-built coded terms (numeric neo-Nazi codes,
+# explicit violent references) get a higher weight.
+#
+# decision_threshold follows the same weight-vs-threshold headroom pattern
+# as taxonomy_v1.yaml (threshold set below weight so an Azure sentiment
+# penalty doesn't trivially zero out an otherwise-clear match).
+
+version: 1
+
+entries:
+  - term: "globalist"
+    harm_mechanism: false_attribution
+    identity_axis: religion
+    signal_weight: 0.60
+    decision_threshold: 0.50
+    source_note: >
+      Documented antisemitic conspiracy trope implying secret Jewish control
+      of global institutions (see ADL Hate Symbols Database). Also has
+      legitimate non-bigoted usage (e.g. "pro-globalization"), hence the
+      lower weight.
+
+  - term: "cultural marxism"
+    harm_mechanism: false_attribution
+    identity_axis: religion
+    signal_weight: 0.65
+    decision_threshold: 0.55
+    source_note: >
+      Antisemitic conspiracy trope (descended from the "Frankfurt School"
+      conspiracy theory) blaming Jewish intellectuals for progressive social
+      change; documented by ADL and academic literature on coded hate speech.
+
+  - term: "cultural marxist"
+    harm_mechanism: false_attribution
+    identity_axis: religion
+    signal_weight: 0.65
+    decision_threshold: 0.55
+    source_note: "Singular form of the 'cultural marxism' trope above."
+
+  - term: "great replacement"
+    harm_mechanism: false_attribution
+    identity_axis: national_origin
+    signal_weight: 0.80
+    decision_threshold: 0.65
+    source_note: >
+      White-nationalist demographic-conspiracy trope claiming a deliberate
+      replacement of white populations by non-white immigrants; documented
+      by ADL and SPLC, and cited in multiple mass-violence manifestos.
+
+  - term: "white genocide"
+    harm_mechanism: false_attribution
+    identity_axis: race_ethnicity
+    signal_weight: 0.80
+    decision_threshold: 0.65
+    source_note: >
+      White-nationalist conspiracy trope, closely related to "great
+      replacement"; documented by ADL and SPLC.
+
+  - term: "kalergi plan"
+    harm_mechanism: false_attribution
+    identity_axis: national_origin
+    signal_weight: 0.75
+    decision_threshold: 0.60
+    source_note: >
+      Antisemitic/white-nationalist conspiracy theory alleging a secret plan
+      to replace European populations through immigration; documented by
+      ADL and academic sources on coded hate speech.
+
+  - term: "zionist occupied government"
+    harm_mechanism: false_attribution
+    identity_axis: religion
+    signal_weight: 0.85
+    decision_threshold: 0.65
+    source_note: >
+      Antisemitic conspiracy trope ("ZOG") alleging secret Jewish control of
+      Western governments; documented by ADL Hate Symbols Database.
+
+  - term: "the goyim know"
+    harm_mechanism: demonization
+    identity_axis: religion
+    signal_weight: 0.75
+    decision_threshold: 0.60
+    source_note: >
+      Antisemitic meme phrase mocking the idea of a secret plan being
+      discovered by non-Jews; documented by ADL.
+
+  - term: "13/50"
+    harm_mechanism: criminalization
+    identity_axis: race_ethnicity
+    signal_weight: 0.80
+    decision_threshold: 0.65
+    source_note: >
+      Racist trope citing decontextualized crime statistics to
+      criminalize Black Americans; documented by ADL Hate Symbols Database.
+
+  - term: "day of the rope"
+    harm_mechanism: direct_call_to_violence
+    identity_axis: race_ethnicity
+    signal_weight: 0.90
+    decision_threshold: 0.55
+    source_note: >
+      Explicit violent reference originating in "The Turner Diaries",
+      widely documented by ADL and SPLC as a white-supremacist call to
+      violence, not an ambiguous term.
+
+  - term: "14 words"
+    harm_mechanism: direct_call_to_violence
+    identity_axis: race_ethnicity
+    signal_weight: 0.85
+    decision_threshold: 0.55
+    source_note: >
+      Reference to David Lane's white-supremacist slogan; documented by ADL
+      Hate Symbols Database as an unambiguous extremist identifier.
+
+  - term: "1488"
+    harm_mechanism: direct_call_to_violence
+    identity_axis: race_ethnicity
+    signal_weight: 0.85
+    decision_threshold: 0.55
+    source_note: >
+      Neo-Nazi numeric code combining "14 words" and "88" (a numeric code
+      for "Heil Hitler"); documented by ADL Hate Symbols Database.

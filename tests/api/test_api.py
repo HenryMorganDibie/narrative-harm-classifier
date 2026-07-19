@@ -99,3 +99,31 @@ def test_tracking_list(client):
     assert resp.status_code == 200
     profiles = resp.json()
     assert any(p["source_id"] == source_id for p in profiles)
+
+
+def test_tracking_verify_intact(client):
+    source_id = f"test-verify-{uuid.uuid4().hex[:8]}"
+    client.post(f"/tracking/{source_id}/observe", json={"text": "Immigration policy is a complex issue"})
+
+    resp = client.get(f"/tracking/{source_id}/verify")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["intact"] is True
+    assert body["observation_count"] == 1
+
+
+def test_tracking_verify_404_when_unknown(client):
+    resp = client.get(f"/tracking/never-observed-{uuid.uuid4().hex[:8]}/verify")
+    assert resp.status_code == 404
+
+
+def test_classify_multilingual(client):
+    resp = client.post(
+        "/classify/",
+        json={"text": "Todos los inmigrantes son criminales, deportarlos a todos", "language": "es"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["is_harmful"] is True
+    assert body["language"] == "es"
+    assert body["language_confidence"] == "verified"
