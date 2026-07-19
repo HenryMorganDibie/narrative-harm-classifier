@@ -6,14 +6,13 @@ and identity anchor detection without requiring Azure credentials.
 """
 
 import pytest
-from core.models import ClassifyRequest, HarmCategory
-from core.config import Settings
-from classifier.taxonomy.loader import load_taxonomy
-from classifier.rules.engine import ClassificationEngine, _detect_identity_anchor, _detect_harm_signals
-from classifier.rules.azure_nlp import AzureNLPClient
-from pathlib import Path
+from narrative_harm_classifier.core.models import ClassifyRequest, HarmCategory
+from narrative_harm_classifier.core.config import Settings, get_settings
+from narrative_harm_classifier.classifier.taxonomy.loader import load_taxonomy
+from narrative_harm_classifier.classifier.rules.engine import ClassificationEngine, _detect_identity_anchor, _detect_harm_signals
+from narrative_harm_classifier.classifier.rules.azure_nlp import AzureNLPClient
 
-TAXONOMY_PATH = str(Path(__file__).parent.parent.parent / "config" / "taxonomy_v1.yaml")
+TAXONOMY_PATH = get_settings().taxonomy_config_path
 
 
 @pytest.fixture
@@ -52,7 +51,7 @@ def test_no_anchor_returns_none():
 # --- Harm pattern detection ---
 
 def test_animalization_pattern():
-    from classifier.taxonomy.loader import TaxonomyRow
+    from narrative_harm_classifier.classifier.taxonomy.loader import TaxonomyRow
     row = TaxonomyRow(
         row_id="test", target_type="ethnic_group",
         harm_mechanism="animalization", identity_axis="race_ethnicity",
@@ -64,7 +63,7 @@ def test_animalization_pattern():
 
 
 def test_no_harm_pattern():
-    from classifier.taxonomy.loader import TaxonomyRow
+    from narrative_harm_classifier.classifier.taxonomy.loader import TaxonomyRow
     row = TaxonomyRow(
         row_id="test", target_type="ethnic_group",
         harm_mechanism="animalization", identity_axis="race_ethnicity",

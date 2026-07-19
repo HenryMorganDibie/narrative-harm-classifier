@@ -1,21 +1,74 @@
 # Narrative Harm Classifier
 
-**Phase 1 — Milestone 2 Implementation**  
-AI content moderation backend for detecting narrative harm in online text.
+Open-source narrative harm detection: a rule-based classification engine, escalation-chain tracking
+across sources over time, and a templated benchmark suite — installable as a library, a CLI, an API,
+or a container.
 
-Built with FastAPI + Azure Text Analytics. Implements the D2.4a classification specification with multi-dimensional rule-based logic across targets, identities, harm mechanisms, and decision thresholds.
+Detects dehumanizing, incitement, and narrative-distortion language against target groups (ethnic,
+religious, gender, national-origin, political), and tracks whether a given source's rhetoric is
+escalating up the harm ladder (othering → dehumanization → criminalization → violence calls) rather
+than treating each text as an isolated event.
 
 ---
 
-## Phase 1 Validation Results
+## Install
 
-| Metric | Result | Threshold | Status |
-|--------|--------|-----------|--------|
-| Precision | **1.000** | ≥ 0.70 | ✅ PASS |
-| Recall | **0.875** | ≥ 0.65 | ✅ PASS |
-| FPR | **0.000** | ≤ 0.20 | ✅ PASS |
+```bash
+pip install narrative-harm-classifier
+# or, from source:
+git clone https://github.com/HenryMorganDibie/narrative-harm-classifier.git
+cd narrative-harm-classifier
+pip install -e ".[dev]"
+```
 
-Category: `dehumanization` (priority category, 19-sample held-out validation set)
+Optional Azure Text Analytics NLP amplification: `pip install "narrative-harm-classifier[azure]"`
+(works fine without it — the engine runs in rule-based fallback mode with no degradation to the
+core signal weights).
+
+Or run it as a container:
+
+```bash
+docker compose up
+```
+
+Both give you the `nhc` command and the FastAPI service (docs at `/docs` once running).
+
+---
+
+## Quickstart
+
+### As a CLI
+
+```bash
+nhc classify "These immigrants are nothing but vermin infesting our cities"
+
+nhc track observe my-monitored-account "Immigration policy is a complex issue"
+nhc track observe my-monitored-account "All immigrants are criminals, deport them all"
+nhc track observe my-monitored-account "We must attack immigrants and eliminate them"
+nhc track show my-monitored-account
+nhc track list
+
+nhc benchmark run
+
+nhc serve  # API at http://localhost:8000/docs
+```
+
+### As a library
+
+```python
+from narrative_harm_classifier import classify
+
+result = classify("These immigrants are nothing but vermin infesting our cities")
+print(result.is_harmful, result.harm_category, result.confidence, result.decision_rationale)
+```
+
+### As an API
+
+```bash
+curl -X POST http://localhost:8000/classify/ \
+  -H "Content-Type: application/json" \
+  -d '{"text": "These immigrants are nothing but vermin infesting our cities"}'
+```
 
 ---
 
@@ -28,16 +81,13 @@ Input Text
 Identity Anchor Detection ──► No group identity found → NO HARM
     │
     ▼
-Azure Text Analytics (sentiment + NER)
+Azure Text Analytics (sentiment + NER, optional)
     │
     ▼
-Multi-Signal Pattern Matching (D2.4a taxonomy rows)
-    │   ├── animalization
-    │   ├── demonization
-    │   ├── objectification
-    │   ├── criminalization
-    │   ├── direct_call_to_violence
-    │   └── false_attribution
+Multi-Signal Pattern Matching (taxonomy rows)
+    │   ├── animalization        ├── criminalization
+    │   ├── demonization          ├── direct_call_to_violence
+    │   └── objectification       └── false_attribution
     │
     ▼
 Weighted Score Aggregation (signal_weight × Azure amplifier)
@@ -47,82 +97,109 @@ Ambiguity Resolution (highest_weight_wins + conservative tie-break)
     │
     ▼
 Threshold Decision → ClassificationResult
+    │
+    ▼
+Escalation Tracking (optional) ──► Observation persisted against a source_id
+                                    → SourceProfile (severity trend, risk level)
 ```
-
----
 
 ## Project Structure
 
 ```
 narrative-harm-classifier/
-├── api/
-│   ├── main.py                    # FastAPI app entry point
-│   └── routes/
-│       ├── classify.py            # POST /classify + POST /classify/batch
-│       ├── validate.py            # POST /validate/dehumanization + /validate/custom
-│       └── health.py              # GET /health
-├── classifier/
-│   ├── taxonomy/
-│   │   └── loader.py              # Versioned taxonomy config loader (cached)
-│   ├── rules/
-│   │   ├── engine.py              # Core multi-dimensional classification engine
-│   │   └── azure_nlp.py           # Azure Text Analytics connector (graceful fallback)
-│   └── validators/
-│       └── performance.py         # Precision/Recall/FPR validator + held-out samples
-├── core/
-│   ├── config.py                  # Settings via env vars (pydantic-settings)
-│   └── models.py                  # Pydantic request/response schemas
-├── config/
-│   └── taxonomy_v1.yaml           # Versioned taxonomy spec (D2.4a rows, thresholds)
+├── pyproject.toml                 # pip-installable package, console script `nhc`
+├── Dockerfile / docker-compose.yml
+├── narrative_harm_classifier/
+│   ├── cli.py                     # `nhc` CLI — classify / serve / track / benchmark
+│   ├── api/
+│   │   ├── main.py
+│   │   └── routes/
+│   │       ├── classify.py        # POST /classify + /classify/batch
+│   │       ├── validate.py        # POST /validate/dehumanization + /custom
+│   │       ├── tracking.py        # POST /tracking/{source_id}/observe, GET /tracking[/{source_id}]
+│   │       ├── benchmark.py       # POST /benchmark/run
+│   │       └── health.py
+│   ├── classifier/
+│   │   ├── taxonomy/loader.py     # Versioned taxonomy config loader (cached)
+│   │   ├── rules/
+│   │   │   ├── engine.py          # Core multi-dimensional classification engine
+│   │   │   └── azure_nlp.py       # Azure Text Analytics connector (graceful fallback)
+│   │   ├── validators/
+│   │   │   ├── performance.py     # Legacy 18-sample held-out validator (Phase 1 gate)
+│   │   │   └── benchmark.py       # Templated functional-test benchmark generator + runner
+│   │   └── tracking/
+│   │       ├── models.py          # Severity ladder, Observation, SourceProfile
+│   │       ├── store.py           # SQLAlchemy-backed persistence (SQLite by default, Postgres-ready)
+│   │       └── tracker.py         # Trend/risk computation
+│   ├── core/
+│   │   ├── config.py              # Settings via env vars (pydantic-settings)
+│   │   └── models.py              # Pydantic request/response schemas
+│   └── data/
+│       ├── taxonomy_v1.yaml           # Versioned taxonomy spec, shipped as package data
+│       └── benchmark_templates.yaml   # Templated benchmark cases, shipped as package data
 ├── tests/
-│   ├── unit/test_engine.py        # Signal detection, anchor, threshold unit tests
-│   └── integration/test_validation.py  # Phase 1 end-to-end milestone gate
-├── .env.example
-└── requirements.txt
+│   ├── unit/                      # Engine + tracking unit tests
+│   ├── integration/                # Phase 1 milestone validation gate
+│   └── benchmark/                  # Benchmark structural tests
+└── .github/workflows/ci.yml
 ```
 
 ---
 
-## Quickstart
+## Escalation-chain tracking
 
-### 1. Clone and configure
+Most moderation tooling scores a single piece of text in isolation. This tracks a **source** — an
+account, an outlet, a document stream, any caller-supplied `source_id` — across a sequence of
+observations, and computes:
 
-```bash
-git clone <repo-url>
-cd narrative-harm-classifier
-cp .env.example .env
-# Optional: add Azure Text Analytics credentials for NLP amplification
-# Works without them (fallback mode) — patterns fire on rule-based signals alone
-```
+- **current severity** — the harm level of the most recent observation
+- **rolling average severity** over a configurable window (default: last 20 observations)
+- **trend** — `escalating` / `stable` / `de-escalating`, from a first-half-vs-second-half average
+  severity comparison over the window (simple, explainable arithmetic — not a black-box model)
+- **risk level** — `low` / `watch` / `elevated` / `critical`, derived from current severity bumped
+  up one level when the trend is escalating
 
-### 2. Install dependencies
+The severity ladder (`narrative_harm_classifier/classifier/tracking/models.py`) —
+`none < narrative_distortion < demonization/objectification < animalization/criminalization <
+direct_call_to_violence` — is a simplified, project-specific model inspired by general
+narrative-escalation research. It is **not** a validated academic scale; it exists to give a
+consistent, explainable ordering for trend computation.
 
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-```
+Persistence uses SQLAlchemy against `DATABASE_URL`/`TRACKING_DB_URL` — SQLite by default (zero
+config), Postgres or Azure SQL for real deployments, same code path.
 
-### 3. Run the API
+---
 
-```bash
-uvicorn api.main:app --reload
-```
+## Benchmark suite
 
-API live at `http://localhost:8000/docs`
+The original validation set was 18 hand-picked examples. `narrative_harm_classifier/data/benchmark_templates.yaml`
+generates a much larger, systematic test suite (~190 cases) modeled on the
+[HateCheck](https://arxiv.org/abs/2012.15606) methodology: templates are tagged with a `test_type` and
+slot-filled across five identity groups, so a regression in one specific capability is visible even
+when the aggregate looks fine, and the same rhetorical pattern is tested identically across groups
+(cross-group consistency).
 
-### 4. Run all tests (including Phase 1 validation gate)
+| test_type | what it checks |
+|---|---|
+| `explicit_positive` | clear, unambiguous harmful language |
+| `implicit_positive` | harmful meaning without trigger words (recall probe) |
+| `negation` | the harmful claim is negated — should NOT be flagged |
+| `counter_speech` | harmful rhetoric quoted to condemn it — should NOT be flagged |
+| `obfuscated_spelling` | trigger words altered to evade literal matching |
+| `benign_trigger_word` | standalone hard negatives (trigger words in benign context, some with a group present) |
 
-```bash
-pytest tests/ -v -s
-```
+Run it with `nhc benchmark run` or `POST /benchmark/run`.
+
+**This is expected to show real weaknesses**, not a clean sweep: the current regex engine does not
+handle negation, counter-speech, or spelling obfuscation. That's the point of building a real
+benchmark — honest measurement instead of a vanity metric. See [CONTRIBUTING.md](CONTRIBUTING.md) for
+what a fix would look like.
 
 ---
 
 ## API Reference
 
-### `POST /classify`
-
-Classify a single text item.
+### `POST /classify/` — classify a single text item
 
 **Request:**
 ```json
@@ -147,91 +224,58 @@ Classify a single text item.
 }
 ```
 
-### `POST /classify/batch`
+### `POST /classify/batch` — classify up to 100 items
 
-Classify up to 100 items in a single call.
+### `POST /tracking/{source_id}/observe` — classify and append to a source's history
 
-### `POST /validate/dehumanization`
+### `GET /tracking/{source_id}` — a source's escalation profile (severity, trend, risk level)
 
-Run Phase 1 milestone validation against the built-in held-out sample set.
-Returns full `ValidationReport` with precision, recall, FPR, TP/FP/TN/FN counts.
+### `GET /tracking` — all tracked sources, sorted by risk
 
-### `GET /health`
+### `POST /benchmark/run` — run the templated benchmark suite
 
-Returns app version, taxonomy version, baseline tag, Azure connection status.
+### `POST /validate/dehumanization` — legacy Phase 1 milestone gate (18-sample set)
+
+### `GET /health` — app version, taxonomy version, baseline tag, Azure connection status
 
 ---
 
 ## Classification Logic (D2.4a Spec)
 
-### Signal Resolution Pipeline
+1. **Identity anchor check** — text must reference a target group. Configurable via
+   `require_target_present` in the taxonomy YAML.
+2. **Harm pattern matching** — regex patterns per `harm_mechanism` across all taxonomy rows.
+3. **Azure NLP amplification** — optional sentiment amplification; degrades gracefully without
+   credentials.
+4. **Weighted aggregation** — `score = signal_weight × azure_amplifier`.
+5. **Ambiguity resolution** — `highest_weight_wins` for multi-signal conflicts; `conservative`
+   tie-break.
+6. **Decision** — `score ≥ decision_threshold` → harmful, with a full rationale string.
 
-1. **Identity anchor check** — text must reference a target group (ethnic, religious, gender, national origin, political). Configurable via `require_target_present` in taxonomy YAML.
-
-2. **Harm pattern matching** — regex patterns per `harm_mechanism` across all taxonomy rows. Patterns reflect harm signal semantics, not just keyword lists.
-
-3. **Azure NLP amplification** — Azure Text Analytics sentiment score amplifies confidence when available. Degrades gracefully to rule-based-only in fallback mode.
-
-4. **Weighted aggregation** — `score = signal_weight × azure_amplifier`. Each row carries its own `signal_weight` (0.70–0.95) and `decision_threshold` (0.55–0.70).
-
-5. **Ambiguity resolution** — `highest_weight_wins` for multi-signal conflicts; `conservative` tie-break (classify as harm when score equals threshold).
-
-6. **Decision** — `score ≥ decision_threshold` → harmful. Full rationale string included in every response.
-
-### Taxonomy Config (versioned)
-
-All classification parameters live in `config/taxonomy_v1.yaml`:
-
-- Taxonomy rows per D2.4a (row_id, target_type, harm_mechanism, identity_axis, signal_weight, decision_threshold)
-- Per-category performance thresholds
-- Ambiguity resolution rules
-- M1 baseline lock flag
-
-Version is pinned in every `ClassificationResult` for M1 baseline reproducibility.
+All classification parameters live in `narrative_harm_classifier/data/taxonomy_v1.yaml`, versioned and
+pinned in every `ClassificationResult` for reproducibility.
 
 ---
 
-## Azure Integration
+## Configuration
 
-Set in `.env`:
-```
-AZURE_TEXT_ANALYTICS_ENDPOINT=https://<resource>.cognitiveservices.azure.com/
-AZURE_TEXT_ANALYTICS_KEY=<key>
-```
+Copy `.env.example` to `.env`. Key settings:
 
-When configured, Azure Text Analytics provides:
-- **Sentiment analysis** — negative score amplifies harm confidence
-- **Named Entity Recognition** — group/identity entity detection
-- **Key phrase extraction** — surface-level signal augmentation
-
-When not configured, the engine runs in **rule-based fallback mode** with full signal_weight applied (no Azure penalty). All 14 tests pass in fallback mode.
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `sqlite:///./dev.db` | General DB URL (Postgres/Azure SQL in prod) |
+| `TRACKING_DB_URL` | falls back to `DATABASE_URL` | Escalation-tracking store |
+| `AZURE_TEXT_ANALYTICS_ENDPOINT` / `_KEY` | unset | Optional NLP amplification |
+| `TAXONOMY_CONFIG_PATH` | packaged `taxonomy_v1.yaml` | Override with a custom taxonomy |
+| `BENCHMARK_TEMPLATES_PATH` | packaged `benchmark_templates.yaml` | Override with custom benchmark cases |
 
 ---
 
-## Phase 2 Scope (Optional Extension)
+## Contributing
 
-- Implement 2–3 additional priority taxonomy rows (`incitement`, `narrative_distortion`)
-- Calibration against expanded held-out sample sets
-- Edge case and ambiguity handling refinement
-- Complete validation workflow for all implemented categories
+See [CONTRIBUTING.md](CONTRIBUTING.md) — how to add a taxonomy row, add a benchmark case, and the
+known limitations that make good first contributions.
 
----
+## License
 
-## Test Coverage
-
-| Test | What it validates |
-|------|-------------------|
-| `test_detects_ethnic_group_anchor` | Race/ethnicity identity detection |
-| `test_detects_religious_group_anchor` | Religion identity detection |
-| `test_detects_gender_anchor` | Gender identity detection |
-| `test_no_anchor_returns_none` | No false anchor positives |
-| `test_animalization_pattern` | Core harm pattern matching |
-| `test_no_harm_pattern` | No false pattern positives |
-| `test_dehumanization_detected` | End-to-end harm classification |
-| `test_benign_text_not_harmful` | No false positives on benign text |
-| `test_no_identity_anchor_returns_no_harm` | Ambiguity rule enforcement |
-| `test_result_has_rationale` | Decision rationale generation |
-| `test_result_has_taxonomy_version` | Version traceability |
-| `test_confidence_bounded` | Confidence score bounds [0, 1] |
-| `test_batch_classify` | Multi-item batch classification |
-| `test_dehumanization_end_to_end_validation` | **Phase 1 milestone gate** — P/R/FPR thresholds |
+[Apache License 2.0](LICENSE).

@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////data/dev.db
+      - TRACKING_DB_URL=sqlite:////data/tracking.db
+    volumes:
+      - nhc-data:/data
+
+volumes:
+  nhc-data:
