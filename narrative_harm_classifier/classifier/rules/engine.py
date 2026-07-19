@@ -354,7 +354,7 @@ class ClassificationEngine:
     ) -> str:
         parts = []
         if is_harmful:
-            parts.append(f"HARM DETECTED: {match.harm_mechanism} targeting {match.identity_axis}.")
+            parts.append(f"HARM DETECTED: {match.harm_mechanism} targeting {match.identity_axis.value}.")
             parts.append(f"Confidence {score:.3f} ≥ threshold {threshold:.3f}.")
             parts.append(f"Matched row {match.row_id}.")
         else:

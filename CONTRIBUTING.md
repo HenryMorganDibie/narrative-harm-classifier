@@ -41,7 +41,27 @@ Pull requests run the full test suite plus the Phase 1 milestone gate
 (`tests/integration/test_validation.py`), which fails the build if the dehumanization category's
 precision/recall/FPR regress below the thresholds in `taxonomy_v1.yaml`. `tests/benchmark/` asserts the
 templated benchmark suite stays at precision 1.0 / recall 1.0 / FPR 0.0 overall and 100% cross-group
-consistency — this **is** a hard gate: a PR that regresses any of those numbers fails CI.
+consistency — this **is** a hard gate: a PR that regresses any of those numbers fails CI. CI also enforces
+a minimum 80% coverage (`--cov-fail-under=80`) across `tests/unit tests/integration tests/api`.
+
+## Coverage badge
+
+The coverage badge in the README is a static number (currently ~90%), captured from a real
+`pytest --cov` run at the time it was last updated — it is **not** a live badge that recalculates itself
+on every push. If you add or remove a meaningful chunk of tested code, regenerate it:
+
+```bash
+pytest tests/unit tests/integration tests/api --cov=narrative_harm_classifier --cov-report=term-missing
+```
+
+and update the percentage in the badge URL in `README.md`. (A live-updating badge would need a service
+like Codecov, which requires the maintainer to connect the repo on codecov.io — not set up here yet.)
+
+## Performance numbers
+
+The numbers in the README's [Performance](README.md#performance) section come from running
+[`scripts/measure_performance.py`](scripts/measure_performance.py) — re-run it and update the table if
+you change anything in the hot classification path (`classifier/rules/engine.py`).
 
 ## How the engine handles negation, counter-speech, and obfuscation
 

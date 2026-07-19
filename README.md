@@ -1,5 +1,11 @@
 # Narrative Harm Classifier
 
+[![CI](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml/badge.svg)](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/narrative-harm-classifier)](https://pypi.org/project/narrative-harm-classifier/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+
 Open-source narrative harm detection: a rule-based classification engine, escalation-chain tracking
 across sources over time, and a templated benchmark suite — installable as a library, a CLI, an API,
 or a container.
@@ -9,7 +15,7 @@ religious, gender, national-origin, political), and tracks whether a given sourc
 escalating up the harm ladder (othering → dehumanization → criminalization → violence calls) rather
 than treating each text as an isolated event.
 
-**License:** [Apache 2.0](LICENSE) · **Status:** Phase 2 (see [Status & roadmap](#status--roadmap))
+**Status:** Phase 2 (see [Status & roadmap](#status--roadmap))
 
 ---
 
@@ -21,6 +27,8 @@ than treating each text as an isolated event.
 - [Core concepts](#core-concepts)
 - [Escalation-chain tracking](#escalation-chain-tracking-in-depth)
 - [Benchmark suite](#benchmark-suite-in-depth)
+- [Performance](#performance)
+- [Limitations](#limitations)
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
 - [API reference](#api-reference)
@@ -90,16 +98,18 @@ Both give you the `nhc` command and the FastAPI service (docs at `/docs` once ru
 ### As a CLI
 
 ```bash
-nhc classify "These immigrants are nothing but vermin infesting our cities"
+nhc classify "Muslim followers are demonic servants of evil"
 ```
+
+![nhc classify output](assets/screenshot-classify.png)
 
 ```json
 {
   "is_harmful": true,
   "harm_category": "dehumanization",
-  "confidence": 0.9,
-  "harm_mechanism": "animalization",
-  "decision_rationale": "HARM DETECTED: animalization targeting race_ethnicity. Confidence 0.900 ≥ threshold 0.650. Matched row D2.4a-001."
+  "confidence": 0.85,
+  "harm_mechanism": "demonization",
+  "decision_rationale": "HARM DETECTED: demonization targeting religion. Confidence 0.850 ≥ threshold 0.650. Matched row D2.4a-002."
 }
 ```
 
@@ -109,14 +119,16 @@ Escalation tracking — classify a sequence of texts against the same source and
 develop:
 
 ```bash
-nhc track observe my-monitored-account "Immigration policy is a complex issue"
-nhc track observe my-monitored-account "All immigrants are criminals, deport them all"
-nhc track observe my-monitored-account "We must attack immigrants and eliminate them"
-nhc track show my-monitored-account
+nhc track observe example-monitored-account "Immigration policy is a complex issue"
+nhc track observe example-monitored-account "All immigrants are criminals, deport them all"
+nhc track observe example-monitored-account "We must attack immigrants and eliminate them"
+nhc track show example-monitored-account
 ```
 
+![nhc track show output](assets/screenshot-track.png)
+
 ```text
-Source:              my-monitored-account
+Source:              example-monitored-account
 Observations:        3
 Current severity:    DIRECT_VIOLENCE_CALL (4)
 Rolling avg severity:2.33
@@ -124,10 +136,15 @@ Trend:               escalating
 Risk level:          CRITICAL
 ```
 
-*(this is real, captured output from running these exact three commands — not illustrative)*
+*(this is real, captured output from running these exact commands — not illustrative)*
 
 ```bash
 nhc benchmark run       # ~190-case functional test suite, broken out by capability
+```
+
+![nhc benchmark run output](assets/screenshot-benchmark.png)
+
+```bash
 nhc serve                # API at http://localhost:8000/docs
 ```
 
@@ -277,35 +294,114 @@ good example of what this check is for.
 
 ---
 
+## Performance
+
+Measured by running [`scripts/measure_performance.py`](scripts/measure_performance.py) yourself — these
+are not estimates. The script times the classification engine directly (5,000 calls, after a 200-call
+warmup), not the HTTP layer, since network/ASGI overhead depends on how you deploy it, not on the engine:
+
+| Metric | Measured |
+|---|---|
+| Average classification latency | 0.14 ms |
+| p95 latency | 0.24 ms |
+| p99 latency | 0.35 ms |
+| Throughput (single core) | ~424,000 texts/min |
+| Engine memory overhead (taxonomy + compiled regex patterns, on top of the interpreter) | ~0.6 MB |
+| Total process RSS (interpreter + FastAPI/Pydantic/SQLAlchemy loaded) | ~35 MB |
+
+Captured on a single core of an Intel Core i7-9700 (8 logical CPUs available, not parallelized),
+Python 3.12.10, Windows 11 — a rule-based regex engine has no reason to be slower on comparable
+hardware, and may be faster on a less loaded machine. Run the script yourself for numbers on your own
+hardware; the point is that anyone can reproduce this, not that this exact figure is guaranteed.
+
+Sub-millisecond latency and near-zero marginal memory are exactly what you'd expect from a regex engine
+rather than a neural model — that's the other side of the trade-off described in
+[Why this exists](#why-this-exists): cheap and fast enough to run on every message at scale, in exchange
+for the contextual-language gaps in [Limitations](#limitations).
+
+---
+
+## Limitations
+
+Beyond the "known limitation" already noted in [Status & roadmap](#status--roadmap) (English-only), it's
+worth being explicit about what a rule/heuristic engine like this one structurally cannot do, rather than
+implying "no weak points" means "no limitations":
+
+- **Sarcasm and irony** — text that means the opposite of its literal words ("oh sure, THEY'RE the real
+  victims here") reads the same as sincere language to a pattern matcher. There's no heuristic for this
+  in the current engine.
+- **Multilingual / cross-lingual input** — the identity-anchor and harm-pattern regexes are English-only;
+  the same harmful claim in another language will not be detected at all, not just detected poorly.
+- **General contextual/pragmatic reasoning** — the negation, counter-speech, and benign-context heuristics
+  (see [CONTRIBUTING.md](CONTRIBUTING.md#how-the-engine-handles-negation-counter-speech-and-obfuscation))
+  cover specific, named patterns. They are not a substitute for actually understanding what a sentence
+  means in context, and will miss constructions outside what's been explicitly handled.
+- **Indirect implication beyond the patterns already added** — the benchmark's `implicit_positive` cases
+  pass because specific phrasings were added to `HARM_PATTERNS` after being identified. A genuinely novel
+  way of implying the same harm without using any covered phrase or trigger word will not be caught until
+  someone notices the gap and adds a pattern for it.
+- **Evolving slang and coded language** — dog-whistles, new euphemisms, and community-specific coded
+  terms change faster than any static pattern list can track, and there is currently no mechanism (curated
+  lexicon, crowd-sourced updates, or model-based generalization) for keeping up automatically.
+
+None of this is hidden in the benchmark numbers on purpose — the benchmark measures what it measures
+(this specific, versioned test suite), and a clean pass on it is a floor, not a ceiling. If you're
+evaluating this for a real deployment, red-team it against your own adversarial examples before trusting
+it, and treat escalation tracking (a trend across many observations) as more load-bearing than any single
+classification.
+
+---
+
 ## Architecture
 
+```mermaid
+flowchart TD
+    A["Input text"] --> B{"Identity anchor\ndetected?"}
+    B -- "no" --> Z["NO HARM"]
+    B -- "yes" --> C["Azure Text Analytics\n(sentiment + NER, optional)"]
+    C --> D["Multi-signal pattern matching\n(taxonomy rows)"]
+
+    subgraph M["Harm mechanisms checked"]
+        direction LR
+        M1["animalization"]
+        M2["demonization"]
+        M3["objectification"]
+        M4["criminalization"]
+        M5["direct_call_to_violence"]
+        M6["false_attribution"]
+    end
+
+    D --> M
+    M --> E{"Negated / counter-speech /\nbenign context?"}
+    E -- "yes, suppress" --> Z
+    E -- "no" --> F["Weighted score aggregation\n(signal_weight × Azure amplifier)"]
+    F --> G["Ambiguity resolution\n(highest_weight_wins + conservative tie-break)"]
+    G --> H{"score ≥ decision_threshold?"}
+    H -- "no" --> Z
+    H -- "yes" --> I["ClassificationResult\n(harm_category, confidence, rationale)"]
+    I -.->|"optional"| J["Escalation tracking:\npersist Observation against source_id"]
+    J --> K["SourceProfile\n(severity trend, risk level)"]
 ```
-Input Text
-    │
-    ▼
-Identity Anchor Detection ──► No group identity found → NO HARM
-    │
-    ▼
-Azure Text Analytics (sentiment + NER, optional)
-    │
-    ▼
-Multi-Signal Pattern Matching (taxonomy rows)
-    │   ├── animalization        ├── criminalization
-    │   ├── demonization          ├── direct_call_to_violence
-    │   └── objectification       └── false_attribution
-    │
-    ▼
-Weighted Score Aggregation (signal_weight × Azure amplifier)
-    │
-    ▼
-Ambiguity Resolution (highest_weight_wins + conservative tie-break)
-    │
-    ▼
-Threshold Decision → ClassificationResult
-    │
-    ▼
-Escalation Tracking (optional) ──► Observation persisted against a source_id
-                                    → SourceProfile (severity trend, risk level)
+
+Escalation tracking, in sequence — a source is scored on trend, not on any single text in isolation:
+
+```mermaid
+sequenceDiagram
+    participant U as Caller
+    participant E as ClassificationEngine
+    participant T as EscalationTracker
+    participant D as Store (SQLite/Postgres)
+
+    U->>T: observe(source_id, text_1)
+    T->>E: classify(text_1)
+    E-->>T: harm_mechanism, severity
+    T->>D: persist Observation
+    U->>T: observe(source_id, text_2)
+    Note over T: ...repeated per new text...
+    U->>T: profile(source_id)
+    T->>D: fetch observation history (window)
+    D-->>T: severities over time
+    T-->>U: SourceProfile (trend, risk_level)
 ```
 
 ## Project structure

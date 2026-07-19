@@ -13,6 +13,8 @@ venv/
 # Local data
 *.db
 *.sqlite3
+.coverage
+htmlcov/
 
 # Editors / OS
 .vscode/
