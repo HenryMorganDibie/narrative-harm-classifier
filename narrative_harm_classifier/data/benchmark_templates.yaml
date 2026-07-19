@@ -1,0 +1,336 @@
+# Benchmark templates — templated functional-test suite (HateCheck-style).
+#
+# Rather than a handful of hand-picked examples, this generates many concrete
+# test cases per harm mechanism across several test types:
+#   explicit_positive   — clear, unambiguous harmful language (the "easy" case)
+#   implicit_positive    — harmful meaning without trigger words (recall probe)
+#   negation              — the harmful claim is negated ("X are NOT vermin")
+#   counter_speech        — harmful rhetoric is quoted in order to condemn it
+#   obfuscated_spelling   — trigger words altered to evade literal matching
+#   benign_trigger_word   — standalone hard negatives (see below)
+#
+# `groups` are slot-filled into `{group}` templates so the same rhetorical
+# pattern is tested identically across identity axes — this also powers a
+# cross-group consistency check (does the engine behave the same regardless
+# of which group is named).
+
+version: 1
+
+groups:
+  - group: "Black people"
+    identity_axis: race_ethnicity
+  - group: "Muslim people"
+    identity_axis: religion
+  - group: "Women"
+    identity_axis: gender
+  - group: "Immigrants"
+    identity_axis: national_origin
+  - group: "Democrats"
+    identity_axis: political_affiliation
+
+templates:
+  # --- animalization ---
+  - template_id: ANIM-01
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "{group} are nothing but vermin infesting our streets"
+    expected_is_harmful: true
+  - template_id: ANIM-02
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "{group} are subhuman animals that don't deserve rights"
+    expected_is_harmful: true
+  - template_id: ANIM-03
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: implicit_positive
+    pattern: "{group} multiply out of control and take over everything"
+    expected_is_harmful: true
+  - template_id: ANIM-04
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: negation
+    pattern: "{group} are not vermin, despite what some people claim"
+    expected_is_harmful: false
+  - template_id: ANIM-05
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: counter_speech
+    pattern: "Some commentators call {group} vermin, and that rhetoric is dangerous and dehumanizing"
+    expected_is_harmful: false
+  - template_id: ANIM-06
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: obfuscated_spelling
+    pattern: "{group} are just v3rm1n that don't belong here"
+    expected_is_harmful: true
+
+  # --- demonization ---
+  - template_id: DEMO-01
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "{group} are demonic servants of evil who must be stopped"
+    expected_is_harmful: true
+  - template_id: DEMO-02
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "{group} are pure evil and beyond redemption"
+    expected_is_harmful: true
+  - template_id: DEMO-03
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: implicit_positive
+    pattern: "{group} secretly serve dark forces working against humanity"
+    expected_is_harmful: true
+  - template_id: DEMO-04
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: negation
+    pattern: "{group} are not evil, whatever the propaganda says"
+    expected_is_harmful: false
+  - template_id: DEMO-05
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: counter_speech
+    pattern: "Calling {group} satanic is bigoted nonsense that fuels violence"
+    expected_is_harmful: false
+  - template_id: DEMO-06
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: obfuscated_spelling
+    pattern: "{group} are d3monic and sh0uld be feared"
+    expected_is_harmful: true
+
+  # --- objectification ---
+  - template_id: OBJ-01
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "{group} are just objects that exist to serve others"
+    expected_is_harmful: true
+  - template_id: OBJ-02
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "{group} are property to be owned and controlled"
+    expected_is_harmful: true
+  - template_id: OBJ-03
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: implicit_positive
+    pattern: "{group} have no value beyond what they can provide to others"
+    expected_is_harmful: true
+  - template_id: OBJ-04
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: negation
+    pattern: "{group} are not objects, despite how some people treat them"
+    expected_is_harmful: false
+  - template_id: OBJ-05
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: counter_speech
+    pattern: "Treating {group} as property is a moral catastrophe we must end"
+    expected_is_harmful: false
+  - template_id: OBJ-06
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: obfuscated_spelling
+    pattern: "{group} are just 0bjects for others to use"
+    expected_is_harmful: true
+
+  # --- criminalization ---
+  - template_id: CRIM-01
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "All {group} are criminals and rapists who threaten our safety"
+    expected_is_harmful: true
+  - template_id: CRIM-02
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: explicit_positive
+    pattern: "{group} keep bringing crime into our communities"
+    expected_is_harmful: true
+  - template_id: CRIM-03
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: implicit_positive
+    pattern: "{group} are responsible for most of the problems in this country"
+    expected_is_harmful: true
+  - template_id: CRIM-04
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: negation
+    pattern: "Not all {group} are criminals, that stereotype is harmful"
+    expected_is_harmful: false
+  - template_id: CRIM-05
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: counter_speech
+    pattern: "Politicians who say {group} are criminals are spreading dangerous lies"
+    expected_is_harmful: false
+  - template_id: CRIM-06
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: obfuscated_spelling
+    pattern: "{group} are cr1minals bringing dr*gs into our neighborhoods"
+    expected_is_harmful: true
+
+  # --- direct_call_to_violence ---
+  - template_id: VIOL-01
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: explicit_positive
+    pattern: "It's time to attack {group} before it's too late"
+    expected_is_harmful: true
+  - template_id: VIOL-02
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: explicit_positive
+    pattern: "{group} must be eliminated for the good of society"
+    expected_is_harmful: true
+  - template_id: VIOL-03
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: implicit_positive
+    pattern: "Something needs to happen to {group} before it's too late"
+    expected_is_harmful: true
+  - template_id: VIOL-04
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: negation
+    pattern: "Some say {group} must be eliminated, but that is a monstrous call to violence"
+    expected_is_harmful: false
+  - template_id: VIOL-05
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: counter_speech
+    pattern: "Rhetoric claiming {group} must be eliminated has directly led to real-world violence"
+    expected_is_harmful: false
+  - template_id: VIOL-06
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: obfuscated_spelling
+    pattern: "{group} must be el1m1nated before it's too late"
+    expected_is_harmful: true
+
+  # --- false_attribution ---
+  - template_id: FATT-01
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: explicit_positive
+    pattern: "{group} are all secretly plotting against everyone else"
+    expected_is_harmful: true
+  - template_id: FATT-02
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: explicit_positive
+    pattern: "Their true agenda regarding {group} is total control over society"
+    expected_is_harmful: true
+  - template_id: FATT-03
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: implicit_positive
+    pattern: "{group} are working toward goals they won't publicly admit"
+    expected_is_harmful: true
+  - template_id: FATT-04
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: negation
+    pattern: "It's false that {group} are all secretly plotting against society"
+    expected_is_harmful: false
+  - template_id: FATT-05
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: counter_speech
+    pattern: "Conspiracy theories claiming {group} are all secretly plotting have caused real harm"
+    expected_is_harmful: false
+  - template_id: FATT-06
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: obfuscated_spelling
+    pattern: "{group} ar3 all s3cretly pl0tting against us"
+    expected_is_harmful: true
+
+# Standalone hard negatives — not slot-filled, one concrete case each.
+# A mix of "no group mentioned at all" (should trivially pass via the
+# identity-anchor gate) and "trigger word + group mentioned together in a
+# benign context" (the harder, more realistic negative).
+standalone_cases:
+  - case_id: BENIGN-ANIM-01
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "The pest control company eliminated the vermin infestation"
+    expected_is_harmful: false
+  - case_id: BENIGN-ANIM-02
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "Asian scientists study why some insects react to vermin traps"
+    expected_is_harmful: false
+  - case_id: BENIGN-DEMO-01
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "The horror movie's demonic possession scenes were terrifying"
+    expected_is_harmful: false
+  - case_id: BENIGN-DEMO-02
+    harm_mechanism: demonization
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "Muslim film critics praised the demonic imagery in the classic horror film"
+    expected_is_harmful: false
+  - case_id: BENIGN-OBJ-01
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "Feminist scholars have written extensively on objectification theory"
+    expected_is_harmful: false
+  - case_id: BENIGN-OBJ-02
+    harm_mechanism: objectification
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "Property ownership laws differ significantly between countries"
+    expected_is_harmful: false
+  - case_id: BENIGN-CRIM-01
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "Crime statistics vary significantly across different demographic groups"
+    expected_is_harmful: false
+  - case_id: BENIGN-CRIM-02
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: benign_trigger_word
+    text: "Immigration policy continues to be a divisive political issue"
+    expected_is_harmful: false
+  - case_id: BENIGN-VIOL-01
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: benign_trigger_word
+    text: "The self-defense class taught students how to avoid physical altercations"
+    expected_is_harmful: false
+  - case_id: BENIGN-VIOL-02
+    harm_mechanism: direct_call_to_violence
+    category: incitement
+    test_type: benign_trigger_word
+    text: "The video game let players eliminate enemies in a fantasy setting"
+    expected_is_harmful: false
+  - case_id: BENIGN-FATT-01
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: benign_trigger_word
+    text: "Political opinion pieces often provoke strong reactions"
+    expected_is_harmful: false
+  - case_id: BENIGN-FATT-02
+    harm_mechanism: false_attribution
+    category: narrative_distortion
+    test_type: benign_trigger_word
+    text: "Policy critique from opposition parties is a normal part of democracy"
+    expected_is_harmful: false
