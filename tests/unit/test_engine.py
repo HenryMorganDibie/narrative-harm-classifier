@@ -57,9 +57,10 @@ def test_animalization_pattern():
         harm_mechanism="animalization", identity_axis="race_ethnicity",
         signal_weight=0.9, decision_threshold=0.65
     )
-    matched, pattern = _detect_harm_signals("they are vermin infesting our streets", row)
+    matched, pattern, match_obj, matched_text = _detect_harm_signals("they are vermin infesting our streets", row)
     assert matched is True
     assert pattern is not None
+    assert match_obj is not None
 
 
 def test_no_harm_pattern():
@@ -69,7 +70,7 @@ def test_no_harm_pattern():
         harm_mechanism="animalization", identity_axis="race_ethnicity",
         signal_weight=0.9, decision_threshold=0.65
     )
-    matched, _ = _detect_harm_signals("I love animals and wildlife", row)
+    matched, _, _, _ = _detect_harm_signals("I love animals and wildlife", row)
     assert matched is False
 
 

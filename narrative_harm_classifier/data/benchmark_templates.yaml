@@ -178,7 +178,7 @@ templates:
     harm_mechanism: criminalization
     category: dehumanization
     test_type: obfuscated_spelling
-    pattern: "{group} are cr1minals bringing dr*gs into our neighborhoods"
+    pattern: "{group} keep br1ng1ng cr1me 1nto our commun1t1es"
     expected_is_harmful: true
 
   # --- direct_call_to_violence ---

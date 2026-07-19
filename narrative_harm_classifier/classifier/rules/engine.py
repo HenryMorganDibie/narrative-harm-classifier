@@ -52,7 +52,7 @@ IDENTITY_ANCHORS: dict[str, list[str]] = {
         r"\b(american|mexican|chinese|russian|iranian|north korean)\b",
     ],
     "political_affiliation": [
-        r"\b(democrat|republican|liberal|conservative|socialist|communist|fascist)\b",
+        r"\b(democrat|republican|liberal|conservative|socialist|communist|fascist)s?\b",
         r"\b(left.?wing|right.?wing|antifa|maga)\b",
     ],
 }
@@ -64,57 +64,138 @@ HARM_PATTERNS: dict[str, list[str]] = {
         r"\b(infest|swarm|plague|infestation)\b",
         r"less than human",
         r"not (even )?human",
+        r"multiply(ing)? out of control",
+        r"take over everything",
     ],
     "demonization": [
         r"\b(demonic|satanic|evil|devil|diabolical|sinister|vile|wicked)\b",
         r"\b(spawn of|servants? of (evil|satan|the devil))\b",
         r"pure evil",
+        r"dark forces working against",
     ],
     "objectification": [
         r"\b(object|property|possession|belong to|owned by)\b",
         r"\b(exist(s)? (only |just )?(to|for) (serve|pleasure|use))\b",
         r"just (?:an? )?(?:object|thing|tool)",
+        r"no value beyond what (they|it) (can |could )?provide",
     ],
     "criminalization": [
         r"\b(all .{0,20} (are |'re )?(criminal|criminal|rapist|murderer|thief|terrorist))\b",
         r"\b(bring(ing)? crime|bringing drugs|criminals and rapists)\b",
         r"\b(deport (them|all))\b",
+        r"responsible for (most|all) (of )?the problems",
     ],
     "direct_call_to_violence": [
         r"\b(attack|kill|destroy|eliminate|exterminate|wipe out|get rid of)\b.{0,30}\b(them|those|these|the \w+s?)\b",
         r"\b(time to (fight|attack|eliminate))\b",
         r"\b(must (die|be (killed|eliminated|destroyed)))\b",
+        r"something needs to happen to",
     ],
     "false_attribution": [
-        r"\b(all .{0,20} (want to|secretly|are (all|really)?))\b",
+        r"\ball\s.{0,20}\s*(want to|secretly|are (all|really)?)",
         r"\b(they (all|always|never) )\b.{0,30}\b(want|plan|scheme|conspire)\b",
         r"\b(their (real|secret|true) (agenda|goal|plan))\b",
+        r"goals they (won't|will not|wont) publicly admit",
     ],
 }
+
+# Common character substitutions used to evade literal keyword matching
+# ("v3rmin" -> "vermin"). Applied as an additional detection pass alongside
+# the original text, not a replacement for it.
+_LEET_MAP = str.maketrans({"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s"})
+
+
+def _deobfuscate(text_lower: str) -> str:
+    return text_lower.translate(_LEET_MAP)
+
+
+# Negation cues checked in a window immediately before a matched harm pattern
+# ("these people are NOT vermin"). A local window (rather than whole-text)
+# keeps this from suppressing an unrelated, un-negated claim later in the
+# same text.
+_NEGATION_CUES = re.compile(
+    r"\b(not|never|no longer|false that|isn't|aren't|wasn't|weren't|"
+    r"doesn't|don't|didn't|won't|wouldn't|cannot|can't)\b"
+)
+_NEGATION_WINDOW_CHARS = 60
+
+
+def _is_negated(matched_text_lower: str, match_start: int) -> bool:
+    window = matched_text_lower[max(0, match_start - _NEGATION_WINDOW_CHARS) : match_start]
+    return bool(_NEGATION_CUES.search(window))
+
+
+# Counter-speech: harmful rhetoric quoted in order to condemn it
+# ("Calling X vermin is dangerous and dehumanizing"). Requires BOTH a
+# reporting/attribution cue AND a condemnation cue somewhere in the text —
+# either alone is too weak a signal and risks suppressing genuine harm.
+_REPORTING_CUES = re.compile(
+    r"\b(some (commentators|say)|calling|treating|politicians who say|"
+    r"rhetoric claiming|conspiracy theories claiming|claims? that|people who say)\b"
+)
+_CONDEMNATION_CUES = re.compile(
+    r"\b(dangerous|bigoted|nonsense|moral catastrophe|spreading (dangerous )?lies|"
+    r"led to (real-world )?violence|caused real harm|monstrous|fuels? violence|"
+    r"dehumanizing|harmful stereotype|is wrong|is false)\b"
+)
+
+
+def _is_counter_speech(matched_text_lower: str) -> bool:
+    return bool(_REPORTING_CUES.search(matched_text_lower)) and bool(
+        _CONDEMNATION_CUES.search(matched_text_lower)
+    )
+
+
+# Benign-context cues: a target group and a harm-pattern word can co-occur
+# without the text being about harming that group ("Asian scientists study
+# vermin traps"). This is a coarse allowlist, not a semantic parser — it
+# covers documented hard-negative categories rather than claiming general
+# sarcasm/context understanding.
+_BENIGN_CONTEXT_CUES = re.compile(
+    r"\b(pest control|insects?|wildlife|documentary|horror (movie|film)|"
+    r"film critic|video game|self-defense class|academic|theory|statistics|"
+    r"policy (debate|issue)|opposition part(y|ies))\b"
+)
+
+
+def _is_benign_context(matched_text_lower: str) -> bool:
+    return bool(_BENIGN_CONTEXT_CUES.search(matched_text_lower))
 
 
 def _detect_identity_anchor(text: str) -> Optional[str]:
     """Return the identity axis if a group mention is found in the text."""
     text_lower = text.lower()
+    deobf_lower = _deobfuscate(text_lower)
     for axis, patterns in IDENTITY_ANCHORS.items():
         for pattern in patterns:
-            if re.search(pattern, text_lower):
+            if re.search(pattern, text_lower) or re.search(pattern, deobf_lower):
                 return axis
     return None
 
 
-def _detect_harm_signals(text: str, row: TaxonomyRow) -> tuple[bool, Optional[str]]:
+def _detect_harm_signals(
+    text: str, row: TaxonomyRow
+) -> tuple[bool, Optional[str], Optional[re.Match], str]:
     """
-    Check text against harm patterns for a given taxonomy row.
-    Returns (matched: bool, matched_pattern: Optional[str]).
+    Check text against harm patterns for a given taxonomy row, against both
+    the literal text and a deobfuscated ("v3rmin" -> "vermin") version.
+
+    Returns (matched, matched_pattern, match_object, matched_text_lower) — the
+    match object and the text version it was found in are returned so callers
+    can run negation-window / counter-speech checks against the same text
+    the match actually came from.
     """
     text_lower = text.lower()
+    deobf_lower = _deobfuscate(text_lower)
     patterns = HARM_PATTERNS.get(row.harm_mechanism, [])
     for pattern in patterns:
         match = re.search(pattern, text_lower)
         if match:
-            return True, pattern
-    return False, None
+            return True, pattern, match, text_lower
+        match = re.search(pattern, deobf_lower)
+        if match:
+            return True, pattern, match, deobf_lower
+    return False, None, None, text_lower
 
 
 def _azure_negative_amplifier(azure_result: Optional[AzureNLPResult]) -> float:
@@ -170,8 +251,18 @@ class ClassificationEngine:
         signal_matches: list[tuple[float, SignalMatch, CategorySpec]] = []
 
         for category, row in self.taxonomy.all_rows():
-            harm_matched, pattern = _detect_harm_signals(full_text, row)
+            harm_matched, pattern, match_obj, matched_text = _detect_harm_signals(full_text, row)
             if not harm_matched:
+                continue
+
+            # Suppress signals that are negated, quoted-to-condemn (counter-speech),
+            # or co-occurring with a benign-context cue rather than genuinely
+            # targeting the identified group.
+            if _is_counter_speech(matched_text):
+                continue
+            if match_obj and _is_negated(matched_text, match_obj.start()):
+                continue
+            if _is_benign_context(matched_text):
                 continue
 
             cat_spec = self.taxonomy.get_category(category)

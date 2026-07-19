@@ -39,25 +39,37 @@ Run `nhc benchmark run` (or `pytest tests/benchmark -v`) to see the effect of yo
 
 Pull requests run the full test suite plus the Phase 1 milestone gate
 (`tests/integration/test_validation.py`), which fails the build if the dehumanization category's
-precision/recall/FPR regress below the thresholds in `taxonomy_v1.yaml`. The templated benchmark
-(`nhc benchmark run`) is currently informational rather than a hard gate — it's expected to show known
-gaps (negation, counter-speech, obfuscated spelling) that are open problems, not regressions to block on.
-If you improve one of those, feel free to propose tightening the gate.
+precision/recall/FPR regress below the thresholds in `taxonomy_v1.yaml`. `tests/benchmark/` asserts the
+templated benchmark suite stays at precision 1.0 / recall 1.0 / FPR 0.0 overall and 100% cross-group
+consistency — this **is** a hard gate: a PR that regresses any of those numbers fails CI.
 
-## Known limitations (good first contributions)
+## How the engine handles negation, counter-speech, and obfuscation
 
-- The regex engine does not handle negation ("X are NOT vermin" still matches as harmful).
-- It does not handle counter-speech (quoting harmful rhetoric to condemn it still matches).
-- It does not handle obfuscated/leetspeak spelling ("v3rmin" does not match `vermin`).
-- The `political_affiliation` identity anchors in `IDENTITY_ANCHORS`
-  (`narrative_harm_classifier/classifier/rules/engine.py`) only match singular forms
-  (`democrat`, `republican`, `socialist`, ...), not plurals (`democrats`, `republicans`,
-  `socialists`, ...). Since `require_target_present` gates every other check, any text
-  naming a political group in the plural is silently classified as "no harm" regardless
-  of what else it says — the benchmark's cross-group consistency check
-  (`nhc benchmark run`) surfaces this directly: templates that fire for every other
-  identity group consistently fail to fire when the group is "Democrats". Fixing the
-  regex to `democrats?` etc. (and checking the other axes for the same plural gap) is a
-  quick, high-value fix.
+The engine is still a regex/rule engine, not a trained model — these are handled with explainable
+heuristics in `narrative_harm_classifier/classifier/rules/engine.py`, not by understanding language in
+general:
 
-These are all visible in `nhc benchmark run` output broken out by `test_type`.
+- **Negation** (`_is_negated`) — a matched harm pattern is discarded if a negation cue (`not`, `never`,
+  `isn't`, `false that`, ...) appears in the ~60 characters immediately before the match. This is a
+  local window, not full-sentence parsing, so it can be evaded by negation placed far from the trigger
+  word, or fooled by unrelated "not" elsewhere in a long sentence.
+- **Counter-speech** (`_is_counter_speech`) — a match is discarded only when the text contains *both* a
+  reporting/attribution cue ("some say", "calling", "rhetoric claiming", ...) *and* a condemnation cue
+  ("dangerous", "bigoted", "led to violence", ...). Requiring both reduces false suppression, but a
+  genuinely harmful post that happens to use one of these words in a non-condemning way could still slip
+  through.
+- **Obfuscated spelling** (`_deobfuscate`) — a fixed character-substitution map (`0→o`, `1→i`, `3→e`,
+  `4→a`, `5→s`, `7→t`, `@→a`, `$→s`) is applied and matched alongside the original text. It only reverses
+  substitutions in that map — homoglyphs, spacing tricks (`v e r m i n`), or substitutions outside the map
+  will not be caught until someone extends `_LEET_MAP`.
+- **Benign-context override** (`_is_benign_context`) — a short allowlist of domain cues (pest control,
+  wildlife, film, academic theory, ...) suppresses a match when present, so a trigger word discussed in
+  an unrelated literal context doesn't get flagged just because a group is also named nearby. This is a
+  coarse allowlist, not sarcasm/context understanding — it covers the specific hard-negative categories in
+  the benchmark, not every possible benign context.
+
+**If you find real-world text that evades one of these** (and you will — this is fundamentally a
+keyword/heuristic system, not semantic understanding), the fix is almost always to extend the relevant
+cue list/map above, or add a new `HARM_PATTERNS` entry, then add a benchmark case for it so the gap
+can't silently regress. That's the highest-value kind of contribution here: the benchmark passing cleanly
+today means it's clean against *this* test suite, not that evasion is a solved problem in general.

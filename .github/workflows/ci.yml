@@ -26,10 +26,10 @@ jobs:
       - name: Run unit + integration tests
         run: pytest tests/unit tests/integration -v
 
-      - name: Run benchmark suite (informational — see nhc benchmark run output)
+      - name: Print benchmark report (human-readable summary alongside the gate below)
         run: python -m narrative_harm_classifier.cli benchmark run
 
-      - name: Run benchmark structural tests
+      - name: Enforce benchmark gate (precision 1.0 / recall 1.0 / FPR 0.0, full cross-group consistency)
         run: pytest tests/benchmark -v
 
   milestone-gate:

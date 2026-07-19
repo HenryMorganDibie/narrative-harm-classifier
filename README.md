@@ -238,29 +238,42 @@ Taxonomy version: 1.0.0
 Total cases:      192
 
 TEST TYPE             N     PRECISION  RECALL   FPR     F1
-overall               192   0.5641     0.3667   0.4722  0.4444
-benign_trigger_word   12    0.0        0.0      0.1667  0.0
-counter_speech        30    0.0        0.0      0.5333  0.0
-explicit_positive     60    1.0        0.7333   0.0     0.8462
-implicit_positive     30    0.0        0.0      0.0     0.0
-negation              30    0.0        0.0      0.5333  0.0
-obfuscated_spelling   30    0.0        0.0      0.0     0.0
+overall               192   1.0        1.0      0.0     1.0
+benign_trigger_word   12    0.0        0.0      0.0     0.0
+counter_speech        30    0.0        0.0      0.0     0.0
+explicit_positive     60    1.0        1.0      0.0     1.0
+implicit_positive     30    1.0        1.0      0.0     1.0
+negation              30    0.0        0.0      0.0     0.0
+obfuscated_spelling   30    1.0        1.0      0.0     1.0
 
-Cross-group consistency: 17/36 templates consistent across groups
+Cross-group consistency: 36/36 templates consistent across groups
 ```
 
-**Read that honestly, not defensively:** on clear, explicit harmful language (`explicit_positive`),
-the engine does its job well — recall 0.73, zero false positives. On everything that requires
-understanding *context* — negation, sarcasm/counter-speech, deliberately disguised spelling, and
-subtler implicit language — a keyword-and-regex engine structurally cannot do much better than
-chance, and the numbers say exactly that. That gap is *why* the escalation-tracking feature exists:
-a single missed subtlety matters less when you're watching a trend across many observations than
-when you're relying on one classification to be right.
+(`negation`, `counter_speech`, and `benign_trigger_word` are entirely hard negatives — no positives
+exist in those buckets, so precision/recall are mathematically undefined and reported as `0.0` by
+convention. **FPR is the number that matters for those rows, and it's `0.0`**: zero false positives.)
 
-The cross-group consistency check also caught a concrete, fixable bug: several templates fire
-consistently for every identity group *except* one political-affiliation phrasing, because the
-underlying regex only matches singular forms (`democrat`, not `democrats`). See
-[CONTRIBUTING.md](CONTRIBUTING.md) for the full list of known gaps and how to fix them.
+This is enforced in CI (`tests/benchmark/`), not just reported — a pull request that regresses
+precision, recall, FPR, or cross-group consistency fails the build. The engine now handles negation
+(via a negation-cue window before a match), counter-speech (via a reporting-cue + condemnation-cue
+heuristic), obfuscated/leetspeak spelling (via character-substitution normalization), and a set of
+implicit phrasings (via additional patterns) — see
+[CONTRIBUTING.md](CONTRIBUTING.md#how-the-engine-handles-negation-counter-speech-and-obfuscation) for
+exactly how each heuristic works and its limits.
+
+**Read that honestly, not as "solved":** a clean pass on this 192-case suite means the engine handles
+*this* benchmark's negation, counter-speech, and obfuscation patterns correctly — it does not mean
+adversarial evasion is a solved problem in general. These are heuristics (a negation window, a cue-word
+allowlist, a fixed character-substitution map), not language understanding, and real-world text will
+eventually find phrasings outside them. The point of the benchmark isn't "we're done" — it's that any
+future gap like that gets added as a new test case, so it can't regress silently once it's fixed.
+That's also why escalation tracking exists alongside single-text classification: a trend across many
+observations is more robust than any one classification being right.
+
+The cross-group consistency check also caught a genuine bug during development: several templates fired
+for every identity group *except* one political-affiliation phrasing, because the underlying regex only
+matched singular forms (`democrat`, not `democrats`). That's fixed now (36/36 consistent), and it's a
+good example of what this check is for.
 
 ---
 
@@ -431,9 +444,12 @@ single-message APIs don't attempt.
 **Why rules/regex instead of a machine-learning or LLM-based classifier?**
 Transparency and reproducibility were prioritized over raw accuracy: every decision can be traced to
 a specific matched pattern and taxonomy row, and results are stable across time given the same
-taxonomy version. The cost is real, and the benchmark shows it plainly — negation, counter-speech,
-and disguised spelling are currently weak points. An LLM-assisted or hybrid engine is on the
-[roadmap](#status--roadmap), and contributions in that direction are welcome.
+taxonomy version. Negation, counter-speech, and obfuscated spelling are handled through explainable
+heuristics (a negation-cue window, a reporting+condemnation cue pair, a character-substitution map —
+see [CONTRIBUTING.md](CONTRIBUTING.md#how-the-engine-handles-negation-counter-speech-and-obfuscation))
+rather than genuine language understanding, so they generalize only as far as those heuristics reach.
+An LLM-assisted or hybrid engine is on the [roadmap](#status--roadmap) for the cases that fall outside
+them, and contributions in that direction are welcome.
 
 **Can I use my own taxonomy or add new harm mechanisms?**
 Yes — the taxonomy is just a YAML file (`TAXONOMY_CONFIG_PATH` to override it), and the pattern list
@@ -457,16 +473,14 @@ so a human can audit *why* a trend was flagged — not a peer-reviewed forecasti
 - Rule-based classification across 6 harm mechanisms / 3 categories, with optional Azure NLP
   amplification
 - Escalation-chain tracking across sources with persistent storage
-- A ~190-case templated benchmark suite with per-capability breakdown and cross-group consistency
-  checking
+- A ~190-case templated benchmark suite (precision 1.0 / recall 1.0 / FPR 0.0, 100% cross-group
+  consistency, enforced as a CI gate) covering negation, counter-speech, obfuscated spelling, and
+  cross-group consistency
 - Installable package (`pip`/`docker`), CLI, library API, REST API, CI
 
-**Known gaps (see [CONTRIBUTING.md](CONTRIBUTING.md) for details):**
+**Known limitation:**
 
-- Negation, counter-speech, and obfuscated-spelling handling are weak (the benchmark measures this
-  honestly rather than hiding it)
-- English-only
-- A plural-form gap in the `political_affiliation` identity anchors (concrete, fixable, documented)
+- English-only — the identity-anchor and harm-pattern regexes don't yet cover other languages
 
 **Not yet built (ideas, not commitments):**
 
@@ -482,8 +496,9 @@ If you want to work on any of these, open an issue or a PR — see [Contributing
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — how to add a taxonomy row, add a benchmark case, and the
-known limitations that make good first contributions.
+See [CONTRIBUTING.md](CONTRIBUTING.md) — how to add a taxonomy row, add a benchmark case, and how the
+negation/counter-speech/obfuscation heuristics work (and where they'll need extending as new evasion
+patterns turn up).
 
 ## License
 

@@ -1,10 +1,10 @@
 """
-tests/benchmark/test_benchmark.py — Structural tests for the templated benchmark suite.
+tests/benchmark/test_benchmark.py — Structural tests + hard gate for the templated benchmark suite.
 
-These deliberately do NOT assert specific pass thresholds: the current
-regex-based engine is known to be weak on negation, counter-speech, and
-obfuscated spelling (see CONTRIBUTING.md). Those numbers are the new honest
-baseline surfaced in `nhc benchmark run`, not a gate to force green.
+The engine handles negation, counter-speech, obfuscated spelling, and
+cross-group consistency via explainable heuristics (see CONTRIBUTING.md for
+how, and their limits). These assertions are a real regression gate: a PR
+that breaks one of those heuristics, or the underlying patterns, fails CI.
 """
 
 import pytest
@@ -79,13 +79,52 @@ def test_report_structure_is_well_formed(runner):
         assert len(entry.verdicts) == 5  # one per group in benchmark_templates.yaml
 
 
-def test_explicit_positive_cases_are_mostly_caught(runner):
+def test_overall_benchmark_is_clean(runner):
     """
-    Sanity floor: the 'easy' explicit positive cases (the kind of language the
-    original 18-sample set was built from) should still be caught well above
-    chance. This is NOT true of negation/counter_speech/obfuscated_spelling —
-    those are documented known gaps, not asserted here.
+    Hard gate: overall precision/recall must be perfect and FPR zero on the
+    current benchmark suite. This does NOT mean evasion is a solved problem in
+    general — it means this specific, versioned test suite passes cleanly, so
+    a future PR that regresses it (or weakens a heuristic) gets caught here
+    instead of silently shipping.
     """
     report = runner.run()
-    explicit = next(t for t in report.by_test_type if t.test_type == "explicit_positive")
-    assert explicit.recall >= 0.7
+    assert report.overall.precision == 1.0
+    assert report.overall.recall == 1.0
+    assert report.overall.fpr == 0.0
+
+
+@pytest.mark.parametrize(
+    "test_type",
+    ["explicit_positive", "implicit_positive", "obfuscated_spelling"],
+)
+def test_positive_test_types_are_fully_caught(runner, test_type):
+    report = runner.run()
+    t = next(t for t in report.by_test_type if t.test_type == test_type)
+    assert t.recall == 1.0
+    assert t.precision == 1.0
+
+
+@pytest.mark.parametrize(
+    "test_type",
+    ["negation", "counter_speech", "benign_trigger_word"],
+)
+def test_negative_test_types_have_zero_false_positive_rate(runner, test_type):
+    """
+    These test types are entirely hard negatives (expected_is_harmful=False),
+    so precision/recall are undefined (no positives exist) — FPR is the
+    metric that actually measures whether the engine over-fires on them.
+    """
+    report = runner.run()
+    t = next(t for t in report.by_test_type if t.test_type == test_type)
+    assert t.fpr == 0.0
+
+
+def test_cross_group_consistency_is_complete(runner):
+    """
+    Every group-expanded template must produce the same verdict regardless of
+    which identity group was slotted in (this caught a real plural-form bug
+    in the political_affiliation identity anchors — see CONTRIBUTING.md).
+    """
+    report = runner.run()
+    inconsistent = [g for g in report.group_consistency if not g.consistent]
+    assert inconsistent == []
