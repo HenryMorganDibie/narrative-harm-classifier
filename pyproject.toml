@@ -63,3 +63,9 @@ packages = ["narrative_harm_classifier"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.vercel]
+# Vercel's FastAPI auto-detection finds an `app` variable in multiple files
+# (api/main.py, cli.py's Typer app, and a test file) and refuses to guess —
+# this pins it to the actual ASGI application.
+entrypoint = "narrative_harm_classifier.api.main:app"
