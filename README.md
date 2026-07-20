@@ -1,14 +1,15 @@
 # Narrative Harm Classifier
 
 [![CI](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml/badge.svg)](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen)](https://github.com/HenryMorganDibie/narrative-harm-classifier/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen)](https://henrymorgandibie.github.io/narrative-harm-classifier/coverage/)
 [![PyPI](https://img.shields.io/pypi/v/narrative-harm-classifier)](https://pypi.org/project/narrative-harm-classifier/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-mkdocs--material-blue)](https://henrymorgandibie.github.io/narrative-harm-classifier/)
 
 Open-source narrative harm detection: a rule-based classification engine, escalation-chain tracking
 across sources over time, and a templated benchmark suite — installable as a library, a CLI, an API,
-or a container.
+or a container. **[Full documentation site →](https://henrymorgandibie.github.io/narrative-harm-classifier/)**
 
 Detects dehumanizing, incitement, and narrative-distortion language against target groups (ethnic,
 religious, gender, national-origin, political), and tracks whether a given source's rhetoric is
@@ -19,8 +20,18 @@ than treating each text as an isolated event.
 
 ---
 
+## Who is this for?
+
+Narrative Harm Classifier is designed for researchers, trust & safety teams, journalists, NGOs, and
+developers who need transparent, explainable analysis of harmful narratives over time. It is intended
+as a decision-support tool for human review, not as an automated enforcement or prediction system —
+see [Why this exists](#why-this-exists) and the [FAQ](#faq) for what that distinction means in practice.
+
+---
+
 ## Table of contents
 
+- [Who is this for?](#who-is-this-for)
 - [Why this exists](#why-this-exists)
 - [Install](#install)
 - [Quickstart](#quickstart)
@@ -475,6 +486,11 @@ classification.
 
 ## Architecture
 
+![Classification pipeline overview](assets/architecture-hero.png)
+
+The diagram above is the high-level shape; every stage below expands into the actual signal-level
+decision logic.
+
 ```mermaid
 flowchart TD
     A["Input text + language"] --> LP["Load language patterns\n(falls back to en if unavailable)"]
@@ -782,7 +798,7 @@ If you want to work on any of these, open an issue or a PR — see [Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) — how to add a taxonomy row, add a benchmark case, and how the
 negation/counter-speech/obfuscation heuristics work (and where they'll need extending as new evasion
-patterns turn up).
+patterns turn up). See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 

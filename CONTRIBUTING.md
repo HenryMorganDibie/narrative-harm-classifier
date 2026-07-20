@@ -93,18 +93,21 @@ templated benchmark suite stays at precision 1.0 / recall 1.0 / FPR 0.0 overall 
 consistency — this **is** a hard gate: a PR that regresses any of those numbers fails CI. CI also enforces
 a minimum 80% coverage (`--cov-fail-under=80`) across `tests/unit tests/integration tests/api`.
 
-## Coverage badge
+## Coverage badge and report
 
-The coverage badge in the README is a static number (currently ~90%), captured from a real
-`pytest --cov` run at the time it was last updated — it is **not** a live badge that recalculates itself
-on every push. If you add or remove a meaningful chunk of tested code, regenerate it:
+The full, browsable HTML coverage report is published to
+[the docs site](https://henrymorgandibie.github.io/narrative-harm-classifier/coverage/) on every push
+to `main` (`.github/workflows/pages.yml`), so it always reflects the current state of `main`. The
+badge percentage in the README itself is still a static number captured at the time it was last
+updated (shields.io badges don't compute values), so if you add or remove a meaningful chunk of
+tested code, regenerate it and update the percentage in the badge URL:
 
 ```bash
 pytest tests/unit tests/integration tests/api --cov=narrative_harm_classifier --cov-report=term-missing
 ```
 
-and update the percentage in the badge URL in `README.md`. (A live-updating badge would need a service
-like Codecov, which requires the maintainer to connect the repo on codecov.io — not set up here yet.)
+(No Codecov or other third-party service is used — the report is self-hosted on GitHub Pages, so
+there's no external account for the maintainer to connect.)
 
 ## Performance numbers
 

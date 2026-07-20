@@ -1,0 +1,80 @@
+site_name: Narrative Harm Classifier
+site_description: >-
+  Transparent, rule-based narrative harm classification with escalation-chain tracking,
+  multilingual support, a dog-whistle lexicon, and a templated benchmark suite.
+site_url: https://henrymorgandibie.github.io/narrative-harm-classifier/
+repo_url: https://github.com/HenryMorganDibie/narrative-harm-classifier
+repo_name: HenryMorganDibie/narrative-harm-classifier
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.sections
+    - navigation.indexes
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path:
+        - .
+      check_paths: true
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/HenryMorganDibie/narrative-harm-classifier
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/narrative-harm-classifier/
+
+nav:
+  - Home: index.md
+  - Install & Quickstart: quickstart.md
+  - Core Concepts: concepts.md
+  - Features:
+      - Escalation-Chain Tracking: features/escalation-tracking.md
+      - Benchmark Suite: features/benchmark.md
+      - Multilingual Support: features/multilingual.md
+      - Dog-whistle Lexicon: features/dogwhistles.md
+      - Counter-Narrative Guidance: features/counter-narrative.md
+      - Provenance & Tamper-Evidence: features/provenance.md
+  - Architecture: architecture.md
+  - API Reference: api-reference.md
+  - Configuration: configuration.md
+  - Performance: performance.md
+  - Limitations: limitations.md
+  - FAQ: faq.md
+  - Status & Roadmap: status-roadmap.md
+  - Coverage Report: coverage.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
