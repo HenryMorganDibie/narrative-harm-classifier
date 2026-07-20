@@ -5,7 +5,7 @@ All notable changes to this project are documented here. Format loosely follows
 [Releases page](https://github.com/HenryMorganDibie/narrative-harm-classifier/releases) also gets
 auto-generated notes grouped by category (see `.github/release.yml`).
 
-## [Unreleased]
+## [0.1.1] - 2026-07-20
 
 ### Added
 - Documentation site (MkDocs Material) published to GitHub Pages, with a self-hosted, real HTML
@@ -14,6 +14,16 @@ auto-generated notes grouped by category (see `.github/release.yml`).
   [narrative-harm-classifier-demo.vercel.app](https://narrative-harm-classifier-demo.vercel.app/),
   running the actual published PyPI package
 - Polished architecture overview diagram alongside the detailed Mermaid flowcharts
+- `race_ethnicity` identity anchors for Fulani, Hausa, Igbo, and Yoruba, plus a `Fulani people`
+  benchmark group for cross-group consistency coverage
+
+### Fixed
+- Criminalization pattern only matched "all X are/`'re` criminal/rapist/murderer/thief/terrorist" —
+  missed the equally common "every X is a Y" phrasing and didn't recognize "bandit"/"kidnapper" as
+  criminalizing terms, so real-world text like "Every Fulani man is a bandit and a kidnapper..."
+  went undetected. Broadened the pattern and added a regression case (`CRIM-07`).
+
+[0.1.1]: https://github.com/HenryMorganDibie/narrative-harm-classifier/releases/tag/v0.1.1
 
 ## [0.1.0] - 2026-07-19
 

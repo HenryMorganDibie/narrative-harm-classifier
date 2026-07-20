@@ -76,7 +76,7 @@ def test_report_structure_is_well_formed(runner):
     # Every group-expanded template should have a consistency entry
     assert len(report.group_consistency) > 0
     for entry in report.group_consistency:
-        assert len(entry.verdicts) == 5  # one per group in benchmark_templates.yaml
+        assert len(entry.verdicts) == 6  # one per group in benchmark_templates.yaml
 
 
 def test_overall_benchmark_is_clean(runner):

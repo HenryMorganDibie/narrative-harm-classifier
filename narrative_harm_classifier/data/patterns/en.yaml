@@ -12,6 +12,7 @@ identity_anchors:
   race_ethnicity:
     - "\\b(black|white|asian|hispanic|latino|arab|indigenous|native)\\b"
     - "\\b(african|european|chinese|mexican|korean|japanese)\\b"
+    - "\\b(fulani|hausa|igbo|yoruba)\\b"
   gender:
     - "\\b(women|men|female|male|nonbinary|transgender|trans)\\b"
     - "\\b(girls|boys|ladies|gentlemen)\\b"
@@ -41,7 +42,7 @@ harm_patterns:
     - "just (?:an? )?(?:object|thing|tool)"
     - "no value beyond what (they|it) (can |could )?provide"
   criminalization:
-    - "\\b(all .{0,20} (are |'re )?(criminal|criminal|rapist|murderer|thief|terrorist))\\b"
+    - "\\b((?:all|every) .{0,25} (?:criminal|rapist|murderer|thief|terrorist|bandit|kidnapper)s?)\\b"
     - "\\b(bring(ing)? crime|bringing drugs|criminals and rapists)\\b"
     - "\\b(deport (them|all))\\b"
     - "responsible for (most|all) (of )?the problems"
