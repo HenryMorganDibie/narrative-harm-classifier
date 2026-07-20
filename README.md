@@ -6,10 +6,12 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs--material-blue)](https://henrymorgandibie.github.io/narrative-harm-classifier/)
+[![Live demo](https://img.shields.io/badge/demo-try%20it%20live-6ea8e6)](https://narrative-harm-classifier-demo.vercel.app/)
 
 Open-source narrative harm detection: a rule-based classification engine, escalation-chain tracking
 across sources over time, and a templated benchmark suite — installable as a library, a CLI, an API,
-or a container. **[Full documentation site →](https://henrymorgandibie.github.io/narrative-harm-classifier/)**
+or a container. **[Try the live demo →](https://narrative-harm-classifier-demo.vercel.app/)** ·
+**[Full documentation site →](https://henrymorgandibie.github.io/narrative-harm-classifier/)**
 
 Detects dehumanizing, incitement, and narrative-distortion language against target groups (ethnic,
 religious, gender, national-origin, political), and tracks whether a given source's rhetoric is

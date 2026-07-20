@@ -5,6 +5,16 @@ All notable changes to this project are documented here. Format loosely follows
 [Releases page](https://github.com/HenryMorganDibie/narrative-harm-classifier/releases) also gets
 auto-generated notes grouped by category (see `.github/release.yml`).
 
+## [Unreleased]
+
+### Added
+- Documentation site (MkDocs Material) published to GitHub Pages, with a self-hosted, real HTML
+  coverage report regenerated on every push to `main`
+- Live classify-only demo (no tracking/database) at
+  [narrative-harm-classifier-demo.vercel.app](https://narrative-harm-classifier-demo.vercel.app/),
+  running the actual published PyPI package
+- Polished architecture overview diagram alongside the detailed Mermaid flowcharts
+
 ## [0.1.0] - 2026-07-19
 
 First public release.
