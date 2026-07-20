@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "narrative-harm-classifier"
-version = "0.1.1"
+version = "0.1.2"
 description = "Rule-based narrative harm classification with escalation-chain tracking and a templated benchmark suite."
 readme = "README.md"
 license = "Apache-2.0"

@@ -265,11 +265,36 @@ templates:
     pattern: "{group} ar3 all s3cretly pl0tting against us"
     expected_is_harmful: true
 
-# Standalone hard negatives — not slot-filled, one concrete case each.
-# A mix of "no group mentioned at all" (should trivially pass via the
-# identity-anchor gate) and "trigger word + group mentioned together in a
-# benign context" (the harder, more realistic negative).
+# Standalone cases — not slot-filled, one concrete case each. Mostly hard
+# negatives ("no group mentioned at all", or "trigger word + group mentioned
+# together in a benign context"), plus a handful of explicit-positive
+# regression cases below reproducing specific real-world text that once
+# evaded detection, so those exact gaps can't silently reopen.
 standalone_cases:
+  - case_id: ANCHOR-PLURAL-01
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: explicit_positive
+    text: "Muslims in the north are all terrorists and should be wiped out"
+    expected_is_harmful: true
+  - case_id: ANCHOR-PLURAL-02
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: explicit_positive
+    text: "All Blacks are criminals who threaten this neighborhood"
+    expected_is_harmful: true
+  - case_id: CRIM-EXTREMIST-01
+    harm_mechanism: criminalization
+    category: dehumanization
+    test_type: explicit_positive
+    text: "Hausa people are all violent extremists who don't deserve to live among us"
+    expected_is_harmful: true
+  - case_id: ANIM-SNAKE-01
+    harm_mechanism: animalization
+    category: dehumanization
+    test_type: explicit_positive
+    text: "Yoruba people are treacherous snakes who can never be trusted in government"
+    expected_is_harmful: true
   - case_id: BENIGN-ANIM-01
     harm_mechanism: animalization
     category: dehumanization

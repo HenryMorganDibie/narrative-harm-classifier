@@ -6,26 +6,33 @@ language: en
 confidence: verified
 
 identity_anchors:
+  # Note: most alternations below end in a shared `s?` (outside the group) rather than
+  # repeating it per word, matching the political_affiliation convention — this is what
+  # lets "Muslims"/"Blacks"/"Americans" etc. match, not just the singular form. A prior
+  # sweep only applied this to political_affiliation; the rest of these were silently
+  # singular-only until a real-world test ("Muslims in the north are all terrorists...")
+  # exposed it. Applying it to inherently invariant words (e.g. "indigenous", "jewish",
+  # "japanese") is harmless — it just never has anything to optionally match.
   religion:
-    - "\\b(christian|muslim|jewish|hindu|buddhist|sikh|atheist|catholic|protestant)\\b"
+    - "\\b(christian|muslim|jewish|hindu|buddhist|sikh|atheist|catholic|protestant)s?\\b"
     - "\\b(islam|christianity|judaism|hinduism|buddhism)\\b"
   race_ethnicity:
-    - "\\b(black|white|asian|hispanic|latino|arab|indigenous|native)\\b"
-    - "\\b(african|european|chinese|mexican|korean|japanese)\\b"
-    - "\\b(fulani|hausa|igbo|yoruba)\\b"
+    - "\\b(black|white|asian|hispanic|latino|arab|indigenous|native)s?\\b"
+    - "\\b(african|european|chinese|mexican|korean|japanese)s?\\b"
+    - "\\b(fulani|hausa|igbo|yoruba)s?\\b"
   gender:
-    - "\\b(women|men|female|male|nonbinary|transgender|trans)\\b"
+    - "\\b(women|men|females?|males?|nonbinary|transgender|trans)\\b"
     - "\\b(girls|boys|ladies|gentlemen)\\b"
   national_origin:
     - "\\b(immigrant|immigrants|refugee|refugees|foreigner|foreigners|migrant|migrants|alien|aliens)\\b"
-    - "\\b(american|mexican|chinese|russian|iranian|north korean)\\b"
+    - "\\b(american|mexican|chinese|russian|iranian|north korean)s?\\b"
   political_affiliation:
     - "\\b(democrat|republican|liberal|conservative|socialist|communist|fascist)s?\\b"
     - "\\b(left.?wing|right.?wing|antifa|maga)\\b"
 
 harm_patterns:
   animalization:
-    - "\\b(vermin|cockroach|rat|pest|animal|beast|savage|subhuman|ape|monkey)\\b"
+    - "\\b(vermin|cockroach|rat|pest|animal|beast|savage|subhuman|ape|monkey|snakes?)\\b"
     - "\\b(infest|swarm|plague|infestation)\\b"
     - "less than human"
     - "not (even )?human"
@@ -42,7 +49,10 @@ harm_patterns:
     - "just (?:an? )?(?:object|thing|tool)"
     - "no value beyond what (they|it) (can |could )?provide"
   criminalization:
-    - "\\b((?:all|every) .{0,25} (?:criminal|rapist|murderer|thief|terrorist|bandit|kidnapper)s?)\\b"
+    # \b instead of a literal space around the noun — "X are all terrorists" (noun directly
+    # adjacent to all/every, no words between) is just as common as "All X are terrorists"
+    # (words between), and a literal-space version only matched the latter.
+    - "\\b((?:all|every)\\b.{0,25}\\b(?:criminal|rapist|murderer|thief|terrorist|extremist|bandit|kidnapper)s?)\\b"
     - "\\b(bring(ing)? crime|bringing drugs|criminals and rapists)\\b"
     - "\\b(deport (them|all))\\b"
     - "responsible for (most|all) (of )?the problems"

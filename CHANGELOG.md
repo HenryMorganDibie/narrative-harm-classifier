@@ -5,6 +5,27 @@ All notable changes to this project are documented here. Format loosely follows
 [Releases page](https://github.com/HenryMorganDibie/narrative-harm-classifier/releases) also gets
 auto-generated notes grouped by category (see `.github/release.yml`).
 
+## [0.1.2] - 2026-07-20
+
+A rigorous red-team pass using real Nigerian sociopolitical text (banditry, ethnic scapegoating,
+Boko Haram, #EndSARS, farmer-herder conflict) surfaced a systemic gap well beyond the original
+0.1.1 fix, described below.
+
+### Fixed
+- **Plural identity anchors.** None of the `religion`, `race_ethnicity`, or `national_origin`
+  identity anchors matched plural demonyms — "Muslims", "Christians", "Blacks", "Americans",
+  "Russians", "Africans" all failed to anchor at all (only the singular form matched), the same
+  bug class already fixed for `political_affiliation` but never applied elsewhere. This affected
+  the entire English pattern file, not just the Nigeria-specific terms added in 0.1.1.
+- Criminalization pattern required a word *between* "all"/"every" and the criminalizing noun
+  ("All X are terrorists" matched, "X are all terrorists" — noun directly adjacent — did not).
+- Added "extremist" and "bandit"/"kidnapper" (0.1.1) to the criminalization vocabulary, and
+  "snake(s)" to the animalization vocabulary — both common real-world dehumanizing terms with no
+  prior coverage.
+- Added 4 regression cases (`ANCHOR-PLURAL-01/02`, `CRIM-EXTREMIST-01`, `ANIM-SNAKE-01`) so these
+  specific gaps can't silently reopen. Benchmark suite grew from 234 to 238 cases, still
+  1.0 precision / 1.0 recall / 0.0 FPR, 37/37 cross-group consistent.
+
 ## [0.1.1] - 2026-07-20
 
 ### Added
@@ -23,6 +44,7 @@ auto-generated notes grouped by category (see `.github/release.yml`).
   criminalizing terms, so real-world text like "Every Fulani man is a bandit and a kidnapper..."
   went undetected. Broadened the pattern and added a regression case (`CRIM-07`).
 
+[0.1.2]: https://github.com/HenryMorganDibie/narrative-harm-classifier/releases/tag/v0.1.2
 [0.1.1]: https://github.com/HenryMorganDibie/narrative-harm-classifier/releases/tag/v0.1.1
 
 ## [0.1.0] - 2026-07-19
